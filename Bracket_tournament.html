@@ -1,0 +1,1694 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tournament Bracket System</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-color: #4e73df;
+            --secondary-color: #858796;
+            --success-color: #1cc88a;
+            --info-color: #36b9cc;
+            --warning-color: #f6c23e;
+            --danger-color: #e74a3b;
+            --light-color: #f8f9fc;
+            --dark-color: #5a5c69;
+        }
+        
+        body {
+            background-color: #f8f9fc;
+            font-family: 'Nunito', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+        }
+        
+        .card {
+            border: none;
+            border-radius: 0.35rem;
+            box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+        }
+        
+        .nav-tabs {
+            border-bottom: 1px solid #dddfeb;
+        }
+        
+        .nav-tabs .nav-link {
+            color: #b7b9cc;
+            border: none;
+            padding: 1rem 1.5rem;
+            font-weight: 600;
+        }
+        
+        .nav-tabs .nav-link.active {
+            color: var(--primary-color);
+            background-color: transparent;
+            border-bottom: 3px solid var(--primary-color);
+        }
+        
+        .nav-tabs .nav-link:hover {
+            color: var(--primary-color);
+            border-color: transparent;
+        }
+        
+        .btn-primary {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+        
+        .btn-success {
+            background-color: var(--success-color);
+            border-color: var(--success-color);
+        }
+        
+        .bracket-container {
+            overflow-x: auto;
+            padding: 20px 0;
+            background-color: white;
+            border-radius: 0.35rem;
+            box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.1);
+        }
+        
+        .round {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-around;
+            margin: 0 30px;
+            min-width: 220px;
+            position: relative;
+        }
+        
+        .round-title {
+            text-align: center;
+            font-weight: 700;
+            margin-bottom: 20px;
+            color: var(--dark-color);
+            padding: 10px;
+            background-color: var(--light-color);
+            border-radius: 0.25rem;
+        }
+        
+        .match {
+            position: relative;
+            margin: 15px 0;
+            background-color: white;
+            border-radius: 0.25rem;
+            box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+        }
+        
+        .player {
+            padding: 12px 15px;
+            margin: 5px 0;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+            border-radius: 0.25rem;
+            border-left: 4px solid transparent;
+        }
+        
+        .player:hover {
+            background-color: #f8f9fa;
+        }
+        
+        .player.winner {
+            background-color: #e6f7f0;
+            border-left-color: var(--success-color);
+            font-weight: 600;
+        }
+        
+        .player.bye {
+            background-color: #fff8e6;
+            border-left-color: var(--warning-color);
+        }
+        
+        .player .score {
+            position: absolute;
+            right: 15px;
+            color: var(--secondary-color);
+            font-size: 0.85em;
+            font-weight: 600;
+        }
+        
+        .connector {
+            position: absolute;
+            right: -20px;
+            width: 20px;
+            height: 2px;
+            background-color: #d1d3e2;
+            top: 50%;
+            z-index: 1;
+        }
+        
+        .vertical-connector {
+            position: absolute;
+            right: -40px;
+            width: 2px;
+            background-color: #d1d3e2;
+            z-index: 1;
+        }
+        
+        .pipeline {
+            position: absolute;
+            background-color: rgba(78, 115, 223, 0.1);
+            border: 1px dashed rgba(78, 115, 223, 0.3);
+            z-index: 0;
+        }
+        
+        .final-match {
+            background-color: #f0f7ff;
+            border: 1px solid #d1e3ff;
+        }
+        
+        .player-tag {
+            display: inline-flex;
+            align-items: center;
+            background-color: var(--light-color);
+            padding: 0.35rem 0.75rem;
+            border-radius: 50rem;
+            margin: 0.25rem;
+        }
+        
+        .player-tag .remove-player {
+            cursor: pointer;
+            margin-left: 0.5rem;
+            color: var(--danger-color);
+            font-size: 0.75rem;
+        }
+        
+        .stats-card {
+            border-left: 4px solid var(--primary-color);
+        }
+        
+        .stats-card .card-body {
+            padding: 1rem 1.5rem;
+        }
+        
+        .progress {
+            height: 0.5rem;
+            border-radius: 0.25rem;
+        }
+        
+        .match-result {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem 1.25rem;
+            border-bottom: 1px solid #e3e6f0;
+        }
+        
+        .match-result:last-child {
+            border-bottom: none;
+        }
+        
+        .match-score {
+            font-weight: 700;
+            color: var(--primary-color);
+        }
+        
+        @media (max-width: 768px) {
+            .round {
+                margin: 0 15px;
+                min-width: 180px;
+            }
+            
+            .connector, .vertical-connector, .pipeline {
+                display: none;
+            }
+        }
+        
+        .tournament-header {
+            background: linear-gradient(135deg, #4e73df 0%, #224abe 100%);
+            color: white;
+            padding: 1.5rem;
+            border-radius: 0.35rem 0.35rem 0 0;
+            margin-bottom: -1px;
+        }
+        
+        .save-load-buttons {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+        
+        .settings-panel {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+        
+        .set-score {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .set-score input {
+            width: 60px;
+            text-align: center;
+            margin: 0 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container py-4">
+        <div class="card shadow">
+            <div class="tournament-header d-flex justify-content-between align-items-center">
+                <div>
+                    <h3 id="tournamentNameDisplay">Tournament Bracket System</h3>
+                    <p id="tournamentDateDisplay" class="mb-0">No date set</p>
+                </div>
+                <button class="btn btn-outline-light" id="editTournamentInfo">
+                    <i class="fas fa-edit me-1"></i> Edit
+                </button>
+            </div>
+            
+            <div class="card-body">
+                <ul class="nav nav-tabs" id="tournamentTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="players-tab" data-bs-toggle="tab" data-bs-target="#players" type="button" role="tab">
+                            <i class="fas fa-users me-2"></i>Add Players
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="bracket-tab" data-bs-toggle="tab" data-bs-target="#bracket-content" type="button" role="tab">
+                            <i class="fas fa-trophy me-2"></i>Knockout Bracket
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="stats-tab" data-bs-toggle="tab" data-bs-target="#stats" type="button" role="tab">
+                            <i class="fas fa-chart-bar me-2"></i>Statistics
+                        </button>
+                    </li>
+                </ul>
+                
+                <div class="tab-content py-4" id="tournamentTabContent">
+                    <!-- Players Tab -->
+                    <div class="tab-pane fade show active" id="players" role="tabpanel">
+                        <div class="row">
+                            <div class="col-lg-6">
+                                <div class="card mb-4">
+                                    <div class="card-header py-3">
+                                        <h6 class="m-0 font-weight-bold text-primary">Add Players</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="input-group mb-3">
+                                            <input type="text" class="form-control" id="playerInput" placeholder="Enter player name">
+                                            <button class="btn btn-primary" id="addPlayer">
+                                                <i class="fas fa-plus me-1"></i> Add
+                                            </button>
+                                        </div>
+                                        
+                                        <div class="d-flex flex-wrap mb-3" id="playerList"></div>
+                                        
+                                        <div class="d-flex gap-2 mb-3">
+                                            <button class="btn btn-outline-secondary" id="importPlayers">
+                                                <i class="fas fa-file-import me-1"></i> Import
+                                            </button>
+                                            <button class="btn btn-outline-secondary" id="exportPlayers">
+                                                <i class="fas fa-file-export me-1"></i> Export
+                                            </button>
+                                            <button class="btn btn-outline-danger" id="clearPlayers">
+                                                <i class="fas fa-trash me-1"></i> Clear All
+                                            </button>
+                                        </div>
+                                        
+                                        <div class="card mb-3">
+                                            <div class="card-header py-2">
+                                                <h6 class="m-0 font-weight-bold text-primary">Tournament Settings</h6>
+                                            </div>
+                                            <div class="card-body p-3">
+                                                <div class="mb-3">
+                                                    <label class="form-label">Scoring System</label>
+                                                    <select class="form-select" id="scoringSystem">
+                                                        <option value="1">Single Set</option>
+                                                        <option value="3">Best of 3 Sets</option>
+                                                    </select>
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label class="form-label">Seeding Method</label>
+                                                    <select class="form-select" id="seedingMethod">
+                                                        <option value="random">Random</option>
+                                                        <option value="ranked">Ranked (by order added)</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <button class="btn btn-success btn-block" id="generateBracket">
+                                            <i class="fas fa-chess-board me-1"></i> Generate Bracket
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-lg-6">
+                                <div class="card mb-4">
+                                    <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                                        <h6 class="m-0 font-weight-bold text-primary">Tournament Information</h6>
+                                        <span class="badge bg-primary" id="tournamentStatus">Not Started</span>
+                                    </div>
+                                    <div class="card-body">
+                                        <div id="tournamentInfo">
+                                            <p class="text-muted">Add players and generate the bracket to begin the tournament.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Bracket Tab -->
+                    <div class="tab-pane fade" id="bracket-content" role="tabpanel">
+                        <div class="d-flex justify-content-end mb-3">
+                            <button class="btn btn-primary" id="enterScores">
+                                <i class="fas fa-pen me-1"></i> Enter Scores
+                            </button>
+                        </div>
+                        
+                        <div class="bracket-container">
+                            <div id="bracket" class="d-flex"></div>
+                        </div>
+                    </div>
+                    
+                    <!-- Statistics Tab -->
+                    <div class="tab-pane fade" id="stats" role="tabpanel">
+                        <div class="row">
+                            <div class="col-lg-6">
+                                <div class="card mb-4">
+                                    <div class="card-header py-3">
+                                        <h6 class="m-0 font-weight-bold text-primary">Player Statistics</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="table-responsive">
+                                            <table class="table table-hover">
+                                                <thead class="thead-light">
+                                                    <tr>
+                                                        <th>Player</th>
+                                                        <th>W-L</th>
+                                                        <th>Points</th>
+                                                        <th>Progress</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody id="playerStats">
+                                                    <tr>
+                                                        <td colspan="4" class="text-center py-4 text-muted">No tournament data available</td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-lg-6">
+                                <div class="card mb-4 stats-card">
+                                    <div class="card-header py-3">
+                                        <h6 class="m-0 font-weight-bold text-primary">Tournament Overview</h6>
+                                    </div>
+                                    <div class="card-body" id="tournamentStats">
+                                        <div class="text-center py-4 text-muted">No tournament data available</div>
+                                    </div>
+                                </div>
+                                
+                                <div class="card mb-4">
+                                    <div class="card-header py-3">
+                                        <h6 class="m-0 font-weight-bold text-primary">Recent Results</h6>
+                                    </div>
+                                    <div class="card-body p-0">
+                                        <div id="recentResults">
+                                            <div class="text-center py-4 text-muted">No matches played yet</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Floating Save/Load Buttons -->
+    <div class="save-load-buttons">
+        <div class="btn-group dropup">
+            <button type="button" class="btn btn-primary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="fas fa-database me-1"></i> Database
+            </button>
+            <ul class="dropdown-menu">
+                <li><a class="dropdown-item" href="#" id="saveToServer"><i class="fas fa-save me-2"></i>Save to Server</a></li>
+                <li><a class="dropdown-item" href="#" id="loadFromServer"><i class="fas fa-folder-open me-2"></i>Load from Server</a></li>
+                <li><hr class="dropdown-divider"></li>
+                <li><a class="dropdown-item" href="#" id="exportFullData"><i class="fas fa-file-export me-2"></i>Export Full Data</a></li>
+                <li><a class="dropdown-item" href="#" id="importFullData"><i class="fas fa-file-import me-2"></i>Import Full Data</a></li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Tournament Info Modal -->
+    <div class="modal fade" id="tournamentInfoModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Tournament Information</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="tournamentInfoForm">
+                        <div class="mb-3">
+                            <label for="tournamentName" class="form-label">Tournament Name</label>
+                            <input type="text" class="form-control" id="tournamentName" placeholder="Enter tournament name">
+                        </div>
+                        <div class="mb-3">
+                            <label for="tournamentDate" class="form-label">Tournament Date</label>
+                            <input type="date" class="form-control" id="tournamentDate">
+                        </div>
+                        <div class="mb-3">
+                            <label for="tournamentLocation" class="form-label">Location (Optional)</label>
+                            <input type="text" class="form-control" id="tournamentLocation" placeholder="Enter location">
+                        </div>
+                        <div class="mb-3">
+                            <label for="tournamentDescription" class="form-label">Description (Optional)</label>
+                            <textarea class="form-control" id="tournamentDescription" rows="3" placeholder="Enter description"></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="saveTournamentInfo">Save Information</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Score Entry Modal -->
+    <div class="modal fade" id="scoreModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Enter Match Scores</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" id="scoreEntry">
+                    <!-- Will be filled dynamically -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="saveScores">Save Scores</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Server Save Modal -->
+    <div class="modal fade" id="serverSaveModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Save to Server</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="saveTournamentId" class="form-label">Tournament ID (leave blank for new)</label>
+                        <input type="text" class="form-control" id="saveTournamentId" placeholder="Enter tournament ID">
+                    </div>
+                    <div class="mb-3">
+                        <label for="saveTournamentPassword" class="form-label">Password (if required)</label>
+                        <input type="password" class="form-control" id="saveTournamentPassword" placeholder="Enter password">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="confirmSaveToServer">Save</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Server Load Modal -->
+    <div class="modal fade" id="serverLoadModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Load from Server</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="loadTournamentId" class="form-label">Tournament ID</label>
+                        <input type="text" class="form-control" id="loadTournamentId" placeholder="Enter tournament ID">
+                    </div>
+                    <div class="mb-3">
+                        <label for="loadTournamentPassword" class="form-label">Password (if required)</label>
+                        <input type="password" class="form-control" id="loadTournamentPassword" placeholder="Enter password">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="confirmLoadFromServer">Load</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // DOM Elements
+            const playerInput = document.getElementById('playerInput');
+            const playerList = document.getElementById('playerList');
+            const addPlayerBtn = document.getElementById('addPlayer');
+            const importPlayersBtn = document.getElementById('importPlayers');
+            const exportPlayersBtn = document.getElementById('exportPlayers');
+            const clearPlayersBtn = document.getElementById('clearPlayers');
+            const generateBracketBtn = document.getElementById('generateBracket');
+            const enterScoresBtn = document.getElementById('enterScores');
+            const exportBracketBtn = document.getElementById('exportBracket');
+            const resetBracketBtn = document.getElementById('resetBracket');
+            const bracketEl = document.getElementById('bracket');
+            const tournamentInfo = document.getElementById('tournamentInfo');
+            const tournamentStatus = document.getElementById('tournamentStatus');
+            const scoreModal = new bootstrap.Modal(document.getElementById('scoreModal'));
+            const scoreEntry = document.getElementById('scoreEntry');
+            const saveScoresBtn = document.getElementById('saveScores');
+            const playerStatsEl = document.getElementById('playerStats');
+            const tournamentStatsEl = document.getElementById('tournamentStats');
+            const recentResultsEl = document.getElementById('recentResults');
+            const bracketTab = document.getElementById('bracket-tab');
+            const tournamentNameDisplay = document.getElementById('tournamentNameDisplay');
+            const tournamentDateDisplay = document.getElementById('tournamentDateDisplay');
+            const editTournamentInfoBtn = document.getElementById('editTournamentInfo');
+            const tournamentInfoModal = new bootstrap.Modal(document.getElementById('tournamentInfoModal'));
+            const tournamentInfoForm = document.getElementById('tournamentInfoForm');
+            const saveTournamentInfoBtn = document.getElementById('saveTournamentInfo');
+            const saveToServerBtn = document.getElementById('saveToServer');
+            const loadFromServerBtn = document.getElementById('loadFromServer');
+            const exportFullDataBtn = document.getElementById('exportFullData');
+            const importFullDataBtn = document.getElementById('importFullData');
+            const serverSaveModal = new bootstrap.Modal(document.getElementById('serverSaveModal'));
+            const serverLoadModal = new bootstrap.Modal(document.getElementById('serverLoadModal'));
+            const confirmSaveToServerBtn = document.getElementById('confirmSaveToServer');
+            const confirmLoadFromServerBtn = document.getElementById('confirmLoadFromServer');
+            const scoringSystemSelect = document.getElementById('scoringSystem');
+            const seedingMethodSelect = document.getElementById('seedingMethod');
+            
+            // Tournament data
+            let tournament = {
+                name: 'Tournament Bracket System',
+                date: null,
+                location: '',
+                description: '',
+                settings: {
+                    scoringSystem: '1', // '1' or '3'
+                    seedingMethod: 'random' // 'random' or 'ranked'
+                },
+                players: [],
+                data: {
+                    rounds: [],
+                    byes: [],
+                    playerStats: {}
+                }
+            };
+            
+            let currentMatchForScoring = null;
+            
+            // Initialize tournament info
+            function initTournamentInfo() {
+                tournamentNameDisplay.textContent = tournament.name;
+                if (tournament.date) {
+                    const dateObj = new Date(tournament.date);
+                    tournamentDateDisplay.textContent = dateObj.toLocaleDateString('en-US', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                    });
+                } else {
+                    tournamentDateDisplay.textContent = 'No date set';
+                }
+                
+                // Update settings UI
+                scoringSystemSelect.value = tournament.settings.scoringSystem;
+                seedingMethodSelect.value = tournament.settings.seedingMethod;
+            }
+            
+            // Initialize player stats
+            function initPlayerStats() {
+                tournament.data.playerStats = {};
+                tournament.players.forEach(player => {
+                    tournament.data.playerStats[player] = {
+                        wins: 0,
+                        losses: 0,
+                        pointsScored: 0,
+                        pointsAgainst: 0,
+                        matches: 0,
+                        progress: 0
+                    };
+                });
+            }
+            
+            // Add player
+            function addPlayer() {
+                const playerName = playerInput.value.trim();
+                if (playerName && !tournament.players.includes(playerName)) {
+                    tournament.players.push(playerName);
+                    renderPlayerList();
+                    playerInput.value = '';
+                    playerInput.focus();
+                }
+            }
+            
+            addPlayerBtn.addEventListener('click', addPlayer);
+            playerInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') addPlayer();
+            });
+            
+            // Remove player
+            function handleRemovePlayer(index) {
+                tournament.players.splice(index, 1);
+                renderPlayerList();
+            }
+            
+            // Render player list
+            function renderPlayerList() {
+                playerList.innerHTML = '';
+                if (tournament.players.length === 0) {
+                    playerList.innerHTML = '<div class="text-muted w-100 text-center py-2">No players added yet</div>';
+                    return;
+                }
+                
+                tournament.players.forEach((player, index) => {
+                    const badge = document.createElement('div');
+                    badge.className = 'player-tag';
+                    badge.innerHTML = `
+                        ${player}
+                        <span class="remove-player" data-index="${index}">
+                            <i class="fas fa-times"></i>
+                        </span>
+                    `;
+                    playerList.appendChild(badge);
+                });
+                
+                // Add event listeners to remove buttons
+                document.querySelectorAll('.remove-player').forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        handleRemovePlayer(parseInt(this.dataset.index));
+                    });
+                });
+            }
+            
+            // Import players
+            importPlayersBtn.addEventListener('click', function() {
+                const playerText = prompt('Enter player names, separated by commas:');
+                if (playerText) {
+                    const newPlayers = playerText.split(',')
+                        .map(name => name.trim())
+                        .filter(name => name.length > 0);
+                    
+                    tournament.players = [...new Set([...tournament.players, ...newPlayers])];
+                    renderPlayerList();
+                }
+            });
+            
+            // Export players
+            exportPlayersBtn.addEventListener('click', function() {
+                if (tournament.players.length === 0) {
+                    showAlert('warning', 'No players to export');
+                    return;
+                }
+                
+                const playerText = tournament.players.join(', ');
+                navigator.clipboard.writeText(playerText)
+                    .then(() => {
+                        showAlert('success', 'Player list copied to clipboard!');
+                    })
+                    .catch(() => {
+                        prompt('Copy this player list:', playerText);
+                    });
+            });
+            
+            // Clear players
+            clearPlayersBtn.addEventListener('click', function() {
+                if (tournament.players.length === 0 || confirm('Are you sure you want to clear all players?')) {
+                    tournament.players = [];
+                    renderPlayerList();
+                }
+            });
+            
+            // Generate bracket
+            generateBracketBtn.addEventListener('click', function() {
+                if (tournament.players.length < 2) {
+                    showAlert('warning', 'You need at least 2 players to generate a bracket');
+                    return;
+                }
+                
+                // Update tournament settings
+                tournament.settings.scoringSystem = scoringSystemSelect.value;
+                tournament.settings.seedingMethod = seedingMethodSelect.value;
+                
+                initializeTournament();
+                generateBracket();
+                updateStatistics();
+                
+                // Switch to bracket tab
+                new bootstrap.Tab(bracketTab).show();
+                
+                // Show success message
+                tournamentInfo.innerHTML = `
+                    <div class="row">
+                        <div class="col-6">
+                            <p><strong>Players:</strong> ${tournament.players.length}</p>
+                            <p><strong>Rounds:</strong> ${tournament.data.rounds.length}</p>
+                        </div>
+                        <div class="col-6">
+                            <p><strong>Byes:</strong> ${tournament.data.byes.length}</p>
+                            <p><strong>Matches:</strong> ${tournament.data.rounds.reduce((total, round) => total + round.length, 0)}</p>
+                        </div>
+                    </div>
+                    <div class="alert alert-success mt-3 mb-0">
+                        <i class="fas fa-check-circle me-2"></i> Bracket generated successfully!
+                    </div>
+                `;
+                
+                tournamentStatus.textContent = 'Ready';
+                tournamentStatus.className = 'badge bg-success';
+            });
+            
+            // Initialize tournament data
+            function initializeTournament() {
+                // Calculate the number of rounds needed
+                const playerCount = tournament.players.length;
+                const roundsNeeded = Math.ceil(Math.log2(playerCount));
+                const bracketSize = Math.pow(2, roundsNeeded);
+                
+                // Determine byes
+                const byes = bracketSize - playerCount;
+                tournament.data.byes = [];
+                
+                if (byes > 0) {
+                    // Distribute byes evenly (alternating between top and bottom)
+                    for (let i = 0; i < byes; i++) {
+                        const position = i % 2 === 0 ? i/2 : bracketSize - 1 - Math.floor(i/2);
+                        tournament.data.byes.push(position);
+                    }
+                }
+                
+                // Seed players based on selected method
+                let seededPlayers = [...tournament.players];
+                
+                if (tournament.settings.seedingMethod === 'random') {
+                    seededPlayers = seededPlayers.sort(() => Math.random() - 0.5);
+                } else if (tournament.settings.seedingMethod === 'ranked') {
+                    // Already in order added (no shuffling)
+                }
+                
+                // Create first round matches
+                const firstRound = [];
+                let playerIndex = 0;
+                
+                for (let i = 0; i < bracketSize / 2; i++) {
+                    const match = {
+                        player1: null,
+                        player2: null,
+                        winner: null,
+                        scores: { player1: 0, player2: 0 },
+                        sets: [], // Array to store set scores for best-of matches
+                        complete: false
+                    };
+                    
+                    // Check if position should be a bye
+                    if (tournament.data.byes.includes(i * 2)) {
+                        match.player1 = seededPlayers[playerIndex++] || null;
+                        match.player2 = null; // Bye
+                        match.winner = match.player1;
+                        match.complete = true;
+                        
+                        // Update player stats for bye
+                        if (match.player1) {
+                            tournament.data.playerStats[match.player1] = tournament.data.playerStats[match.player1] || {
+                                wins: 0, losses: 0, pointsScored: 0, pointsAgainst: 0, matches: 0, progress: 0
+                            };
+                            tournament.data.playerStats[match.player1].wins++;
+                            tournament.data.playerStats[match.player1].matches++;
+                            tournament.data.playerStats[match.player1].progress = 100 / (tournament.data.rounds.length + 1);
+                        }
+                    } else if (tournament.data.byes.includes(i * 2 + 1)) {
+                        match.player1 = seededPlayers[playerIndex++] || null;
+                        match.player2 = null; // Bye
+                        match.winner = match.player1;
+                        match.complete = true;
+                        
+                        // Update player stats for bye
+                        if (match.player1) {
+                            tournament.data.playerStats[match.player1] = tournament.data.playerStats[match.player1] || {
+                                wins: 0, losses: 0, pointsScored: 0, pointsAgainst: 0, matches: 0, progress: 0
+                            };
+                            tournament.data.playerStats[match.player1].wins++;
+                            tournament.data.playerStats[match.player1].matches++;
+                            tournament.data.playerStats[match.player1].progress = 100 / (tournament.data.rounds.length + 1);
+                        }
+                    } else {
+                        match.player1 = seededPlayers[playerIndex++] || null;
+                        match.player2 = seededPlayers[playerIndex++] || null;
+                    }
+                    
+                    firstRound.push(match);
+                }
+                
+                tournament.data.rounds = [firstRound];
+                
+                // Generate empty rounds
+                for (let i = 1; i < roundsNeeded; i++) {
+                    const matchesInRound = bracketSize / Math.pow(2, i + 1);
+                    const round = Array(matchesInRound).fill().map(() => ({
+                        player1: null,
+                        player2: null,
+                        winner: null,
+                        scores: { player1: 0, player2: 0 },
+                        sets: [],
+                        complete: false
+                    }));
+                    tournament.data.rounds.push(round);
+                }
+                
+                // Initialize player stats
+                initPlayerStats();
+            }
+            
+            // Generate bracket visualization
+            function generateBracket() {
+                bracketEl.innerHTML = '';
+                
+                tournament.data.rounds.forEach((round, roundIndex) => {
+                    const roundContainer = document.createElement('div');
+                    roundContainer.className = 'round';
+                    
+                    const roundTitle = document.createElement('div');
+                    roundTitle.className = 'round-title';
+                    
+                    // Set round names based on tournament size
+                    if (tournament.data.rounds.length === 1) {
+                        roundTitle.textContent = 'Final';
+                    } else if (tournament.data.rounds.length === 2) {
+                        roundTitle.textContent = roundIndex === 0 ? 'Semifinals' : 'Final';
+                    } else if (tournament.data.rounds.length === 3) {
+                        roundTitle.textContent = 
+                            roundIndex === 0 ? 'Quarterfinals' : 
+                            roundIndex === 1 ? 'Semifinals' : 'Final';
+                    } else if (tournament.data.rounds.length >= 4) {
+                        const roundNames = [
+                            'Round of 64', 'Round of 32', 'Round of 16', 
+                            'Quarterfinals', 'Semifinals', 'Final'
+                        ];
+                        const nameIndex = roundNames.length - tournament.data.rounds.length + roundIndex;
+                        roundTitle.textContent = roundNames[nameIndex] || `Round ${roundIndex + 1}`;
+                    }
+                    
+                    roundContainer.appendChild(roundTitle);
+                    
+                    round.forEach((match, matchIndex) => {
+                        const matchWrapper = document.createElement('div');
+                        matchWrapper.className = 'match-container';
+                        
+                        const matchEl = document.createElement('div');
+                        matchEl.className = 'match';
+                        matchEl.dataset.round = roundIndex;
+                        matchEl.dataset.match = matchIndex;
+                        
+                        if (roundIndex === tournament.data.rounds.length - 1) {
+                            matchEl.classList.add('final-match');
+                        }
+                        
+                        // Player 1
+                        const player1 = document.createElement('div');
+                        player1.className = 'player';
+                        if (match.player1 === null && match.player2 === null) {
+                            player1.textContent = 'TBD';
+                        } else if (match.player1 === null) {
+                            player1.textContent = 'Bye';
+                            player1.classList.add('bye');
+                        } else {
+                            player1.textContent = match.player1;
+                            if (match.winner === match.player1) {
+                                player1.classList.add('winner');
+                            }
+                            
+                            // Add score if available
+                            if (match.scores.player1 > 0 || match.scores.player2 > 0) {
+                                const scoreSpan = document.createElement('span');
+                                scoreSpan.className = 'score';
+                                scoreSpan.textContent = match.scores.player1;
+                                player1.appendChild(scoreSpan);
+                            }
+                        }
+                        player1.addEventListener('click', () => handlePlayerClick(roundIndex, matchIndex, 'player1'));
+                        matchEl.appendChild(player1);
+                        
+                        // Player 2 (only if not final round with odd players)
+                        if (!(roundIndex === tournament.data.rounds.length - 1 && match.player2 === null && match.player1 !== null)) {
+                            const player2 = document.createElement('div');
+                            player2.className = 'player';
+                            if (match.player2 === null && match.player1 !== null) {
+                                player2.textContent = 'Bye';
+                                player2.classList.add('bye');
+                            } else if (match.player2 === null) {
+                                player2.textContent = 'TBD';
+                            } else {
+                                player2.textContent = match.player2;
+                                if (match.winner === match.player2) {
+                                    player2.classList.add('winner');
+                                }
+                                
+                                // Add score if available
+                                if (match.scores.player1 > 0 || match.scores.player2 > 0) {
+                                    const scoreSpan = document.createElement('span');
+                                    scoreSpan.className = 'score';
+                                    scoreSpan.textContent = match.scores.player2;
+                                    player2.appendChild(scoreSpan);
+                                }
+                            }
+                            player2.addEventListener('click', () => handlePlayerClick(roundIndex, matchIndex, 'player2'));
+                            matchEl.appendChild(player2);
+                        }
+                        
+                        // Add connector lines except for final round
+                        if (roundIndex < tournament.data.rounds.length - 1) {
+                            const connector = document.createElement('div');
+                            connector.className = 'connector';
+                            matchEl.appendChild(connector);
+                            
+                            // Add vertical connector for all but last round
+                            if (roundIndex < tournament.data.rounds.length - 2) {
+                                const verticalConnector = document.createElement('div');
+                                verticalConnector.className = 'vertical-connector';
+                                const height = 50 * Math.pow(2, tournament.data.rounds.length - roundIndex - 2);
+                                verticalConnector.style.height = `${height}px`;
+                                verticalConnector.style.top = `-${height/2 - 25}px`;
+                                matchEl.appendChild(verticalConnector);
+                            }
+                        }
+                        
+                        matchWrapper.appendChild(matchEl);
+                        roundContainer.appendChild(matchWrapper);
+                    });
+                    
+                    bracketEl.appendChild(roundContainer);
+                });
+                
+                // Draw pipelines between connected matches
+                drawPipelines();
+            }
+            
+            // Handle player click (set winner or enter scores)
+            function handlePlayerClick(roundIndex, matchIndex, playerKey) {
+                const match = tournament.data.rounds[roundIndex][matchIndex];
+                const player = match[playerKey];
+                
+                if (player === null) return; // Bye or TBD
+                
+                // If match is complete, don't allow changes
+                if (match.complete) return;
+                
+                // If both players are set but no scores entered, prompt for scores
+                if (match.player1 && match.player2 && !match.complete) {
+                    currentMatchForScoring = { roundIndex, matchIndex, match };
+                    showScoreModal(match);
+                    return;
+                }
+                
+                // Set winner for matches with byes
+                match.winner = player;
+                match.complete = true;
+                
+                // Propagate winner to next round
+                if (roundIndex < tournament.data.rounds.length - 1) {
+                    const nextRoundIndex = roundIndex + 1;
+                    const nextMatchIndex = Math.floor(matchIndex / 2);
+                    const nextPlayerKey = matchIndex % 2 === 0 ? 'player1' : 'player2';
+                    
+                    tournament.data.rounds[nextRoundIndex][nextMatchIndex][nextPlayerKey] = player;
+                }
+                
+                // Update player stats for bye
+                if (player) {
+                    tournament.data.playerStats[player].wins++;
+                    tournament.data.playerStats[player].matches++;
+                    tournament.data.playerStats[player].progress = 
+                        ((roundIndex + 1) / (tournament.data.rounds.length + 1)) * 100;
+                }
+                
+                generateBracket();
+                updateStatistics();
+            }
+            
+            // Draw pipeline connections between matches
+            function drawPipelines() {
+                // Clear existing pipelines
+                document.querySelectorAll('.pipeline').forEach(el => el.remove());
+                
+                // Draw connections between rounds
+                for (let roundIndex = 0; roundIndex < tournament.data.rounds.length - 1; roundIndex++) {
+                    const currentRound = tournament.data.rounds[roundIndex];
+                    const nextRound = tournament.data.rounds[roundIndex + 1];
+                    
+                    currentRound.forEach((match, matchIndex) => {
+                        if (match.complete && match.winner) {
+                            const nextMatchIndex = Math.floor(matchIndex / 2);
+                            const nextMatch = nextRound[nextMatchIndex];
+                            
+                            if (nextMatch) {
+                                const currentMatchEl = document.querySelector(`.match[data-round="${roundIndex}"][data-match="${matchIndex}"]`);
+                                const nextMatchEl = document.querySelector(`.match[data-round="${roundIndex + 1}"][data-match="${nextMatchIndex}"]`);
+                                
+                                if (currentMatchEl && nextMatchEl) {
+                                    const currentRect = currentMatchEl.getBoundingClientRect();
+                                    const nextRect = nextMatchEl.getBoundingClientRect();
+                                    const bracketRect = bracketEl.getBoundingClientRect();
+                                    
+                                    const pipeline = document.createElement('div');
+                                    pipeline.className = 'pipeline';
+                                    
+                                    // Calculate positions relative to bracket
+                                    const startX = currentRect.right - bracketRect.left;
+                                    const startY = currentRect.top + currentRect.height / 2 - bracketRect.top;
+                                    const endX = nextRect.left - bracketRect.left;
+                                    const endY = nextRect.top + nextRect.height / 2 - bracketRect.top;
+                                    
+                                    // Calculate width and height
+                                    const width = endX - startX;
+                                    const height = endY - startY;
+                                    
+                                    // Position the pipeline
+                                    pipeline.style.left = `${startX}px`;
+                                    pipeline.style.top = `${startY}px`;
+                                    pipeline.style.width = `${width}px`;
+                                    pipeline.style.height = `${height}px`;
+                                    
+                                    // Add to bracket
+                                    bracketEl.appendChild(pipeline);
+                                }
+                            }
+                        }
+                    });
+                }
+            }
+            
+            // Enter scores
+            enterScoresBtn.addEventListener('click', function() {
+                // Find the first incomplete match
+                let matchToScore = null;
+                
+                for (let roundIndex = 0; roundIndex < tournament.data.rounds.length; roundIndex++) {
+                    const round = tournament.data.rounds[roundIndex];
+                    
+                    for (let matchIndex = 0; matchIndex < round.length; matchIndex++) {
+                        const match = round[matchIndex];
+                        
+                        // Skip matches with byes or already completed matches
+                        if (match.player1 && match.player2 && !match.complete) {
+                            matchToScore = { roundIndex, matchIndex, match };
+                            break;
+                        }
+                    }
+                    
+                    if (matchToScore) break;
+                }
+                
+                if (!matchToScore) {
+                    showAlert('info', 'All matches have been completed or the tournament is complete!');
+                    return;
+                }
+                
+                currentMatchForScoring = matchToScore;
+                showScoreModal(matchToScore.match);
+            });
+            
+            // Show score entry modal
+            function showScoreModal(match) {
+                const isBestOfThree = tournament.settings.scoringSystem === '3';
+                
+                let setsHTML = '';
+                if (isBestOfThree) {
+                    // For best of 3, show inputs for up to 3 sets
+                    const setsToShow = Math.min(3, match.sets.length + 1);
+                    
+                    for (let i = 0; i < setsToShow; i++) {
+                        const set = match.sets[i] || { player1: 0, player2: 0 };
+                        setsHTML += `
+                            <div class="set-score">
+                                <span>Set ${i + 1}:</span>
+                                <input type="number" min="0" class="form-control" 
+                                       id="set${i}Player1" value="${set.player1}" placeholder="0">
+                                <span class="mx-2">-</span>
+                                <input type="number" min="0" class="form-control" 
+                                       id="set${i}Player2" value="${set.player2}" placeholder="0">
+                            </div>
+                        `;
+                    }
+                }
+                
+                scoreEntry.innerHTML = `
+                    <div class="mb-4 text-center">
+                        <h4>${match.player1} vs ${match.player2}</h4>
+                        <p class="text-muted">Enter the scores for this match</p>
+                    </div>
+                    ${isBestOfThree ? setsHTML : `
+                        <div class="row mb-3">
+                            <div class="col">
+                                <label class="form-label">${match.player1} score</label>
+                                <input type="number" min="0" class="form-control form-control-lg text-center" 
+                                       id="scorePlayer1" value="${match.scores.player1}" placeholder="0">
+                            </div>
+                            <div class="col">
+                                <label class="form-label">${match.player2} score</label>
+                                <input type="number" min="0" class="form-control form-control-lg text-center" 
+                                       id="scorePlayer2" value="${match.scores.player2}" placeholder="0">
+                            </div>
+                        </div>
+                    `}
+                `;
+                
+                scoreModal.show();
+            }
+            
+            // Save scores
+            saveScoresBtn.addEventListener('click', function() {
+                if (!currentMatchForScoring) return;
+                
+                const { roundIndex, matchIndex, match } = currentMatchForScoring;
+                const isBestOfThree = tournament.settings.scoringSystem === '3';
+                
+                if (isBestOfThree) {
+                    // Handle best of 3 sets scoring
+                    const sets = [];
+                    let player1Wins = 0;
+                    let player2Wins = 0;
+                    let player1Total = 0;
+                    let player2Total = 0;
+                    
+                    // Collect set scores
+                    for (let i = 0; i < 3; i++) {
+                        const score1 = parseInt(document.getElementById(`set${i}Player1`)?.value) || 0;
+                        const score2 = parseInt(document.getElementById(`set${i}Player2`)?.value) || 0;
+                        
+                        if (score1 > 0 || score2 > 0) {
+                            sets.push({ player1: score1, player2: score2 });
+                            player1Total += score1;
+                            player2Total += score2;
+                            
+                            if (score1 > score2) player1Wins++;
+                            else player2Wins++;
+                        }
+                    }
+                    
+                    // Validate sets
+                    if (sets.length === 0) {
+                        showAlert('warning', 'Please enter at least one set score');
+                        return;
+                    }
+                    
+                    // Check if match is complete (someone won 2 sets)
+                    if (player1Wins < 2 && player2Wins < 2 && sets.length < 3) {
+                        showAlert('warning', 'Match is not complete. Need a winner with 2 sets won.');
+                        return;
+                    }
+                    
+                    // Update match data
+                    tournament.data.rounds[roundIndex][matchIndex].sets = sets;
+                    tournament.data.rounds[roundIndex][matchIndex].scores = {
+                        player1: player1Total,
+                        player2: player2Total
+                    };
+                    
+                    // Set winner
+                    const winner = player1Wins > player2Wins ? match.player1 : match.player2;
+                    const loser = player1Wins > player2Wins ? match.player2 : match.player1;
+                    tournament.data.rounds[roundIndex][matchIndex].winner = winner;
+                    tournament.data.rounds[roundIndex][matchIndex].complete = true;
+                    
+                    // Update player stats
+                    updatePlayerStats(winner, loser, player1Total, player2Total, player1Wins > player2Wins, roundIndex);
+                } else {
+                    // Handle single set scoring
+                    const score1 = parseInt(document.getElementById('scorePlayer1').value) || 0;
+                    const score2 = parseInt(document.getElementById('scorePlayer2').value) || 0;
+                    
+                    if (score1 === 0 && score2 === 0) {
+                        showAlert('warning', 'Please enter valid scores');
+                        return;
+                    }
+                    
+                    if (score1 === score2) {
+                        showAlert('warning', 'Scores cannot be equal. Please determine a winner.');
+                        return;
+                    }
+                    
+                    // Update scores
+                    tournament.data.rounds[roundIndex][matchIndex].scores = {
+                        player1: score1,
+                        player2: score2
+                    };
+                    
+                    // Set winner and complete status
+                    const winner = score1 > score2 ? match.player1 : match.player2;
+                    const loser = score1 > score2 ? match.player2 : match.player1;
+                    tournament.data.rounds[roundIndex][matchIndex].winner = winner;
+                    tournament.data.rounds[roundIndex][matchIndex].complete = true;
+                    
+                    // Update player stats
+                    updatePlayerStats(winner, loser, score1, score2, score1 > score2, roundIndex);
+                }
+                
+                // Propagate winner to next round
+                if (roundIndex < tournament.data.rounds.length - 1) {
+                    const nextRoundIndex = roundIndex + 1;
+                    const nextMatchIndex = Math.floor(matchIndex / 2);
+                    const nextPlayerKey = matchIndex % 2 === 0 ? 'player1' : 'player2';
+                    
+                    tournament.data.rounds[nextRoundIndex][nextMatchIndex][nextPlayerKey] = tournament.data.rounds[roundIndex][matchIndex].winner;
+                }
+                
+                scoreModal.hide();
+                generateBracket();
+                updateStatistics();
+                
+                // Check if tournament is complete
+                checkTournamentCompletion();
+            });
+            
+            // Helper function to update player stats
+            function updatePlayerStats(winner, loser, score1, score2, isPlayer1Winner, roundIndex) {
+                if (!tournament.data.playerStats[winner]) {
+                    tournament.data.playerStats[winner] = {
+                        wins: 0, losses: 0, pointsScored: 0, pointsAgainst: 0, matches: 0, progress: 0
+                    };
+                }
+                if (!tournament.data.playerStats[loser]) {
+                    tournament.data.playerStats[loser] = {
+                        wins: 0, losses: 0, pointsScored: 0, pointsAgainst: 0, matches: 0, progress: 0
+                    };
+                }
+                
+                tournament.data.playerStats[winner].wins++;
+                tournament.data.playerStats[winner].pointsScored += (isPlayer1Winner ? score1 : score2);
+                tournament.data.playerStats[winner].pointsAgainst += (isPlayer1Winner ? score2 : score1);
+                tournament.data.playerStats[winner].matches++;
+                tournament.data.playerStats[winner].progress = 
+                    ((roundIndex + 1) / (tournament.data.rounds.length + 1)) * 100;
+                
+                tournament.data.playerStats[loser].losses++;
+                tournament.data.playerStats[loser].pointsScored += (isPlayer1Winner ? score2 : score1);
+                tournament.data.playerStats[loser].pointsAgainst += (isPlayer1Winner ? score1 : score2);
+                tournament.data.playerStats[loser].matches++;
+                tournament.data.playerStats[loser].progress = 
+                    (roundIndex / (tournament.data.rounds.length + 1)) * 100;
+            }
+            
+            // Check if tournament is complete
+            function checkTournamentCompletion() {
+                const finalRound = tournament.data.rounds[tournament.data.rounds.length - 1];
+                const isComplete = finalRound[0].complete;
+                
+                if (isComplete) {
+                    tournamentStatus.textContent = 'Completed';
+                    tournamentStatus.className = 'badge bg-success';
+                    
+                    // Show champion
+                    const champion = finalRound[0].winner;
+                    tournamentInfo.innerHTML += `
+                        <div class="alert alert-success mt-3">
+                            <i class="fas fa-trophy me-2"></i> 
+                            <strong>Tournament Champion:</strong> ${champion}
+                        </div>
+                    `;
+                }
+            }
+            
+            // Update statistics panel
+            function updateStatistics() {
+                // Tournament overview stats
+                const totalMatches = tournament.data.rounds.reduce((total, round) => total + round.length, 0);
+                const completedMatches = tournament.data.rounds.reduce((total, round) => {
+                    return total + round.filter(match => match.complete).length;
+                }, 0);
+                
+                const progressPercentage = Math.round((completedMatches / totalMatches) * 100);
+                
+                tournamentStatsEl.innerHTML = `
+                    <div class="row text-center mb-3">
+                        <div class="col-md-4 mb-3">
+                            <div class="card border-left-primary h-100">
+                                <div class="card-body">
+                                    <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                        Players
+                                    </div>
+                                    <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                        ${tournament.players.length}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="card border-left-success h-100">
+                                <div class="card-body">
+                                    <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                        Matches Completed
+                                    </div>
+                                    <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                        ${completedMatches}/${totalMatches}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="card border-left-info h-100">
+                                <div class="card-body">
+                                    <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                        Progress
+                                    </div>
+                                    <div class="row align-items-center no-gutters">
+                                        <div class="col-auto">
+                                            <div class="h5 mb-0 mr-3 font-weight-bold text-gray-800">
+                                                ${progressPercentage}%
+                                            </div>
+                                        </div>
+                                        <div class="col">
+                                            <div class="progress progress-sm mr-2">
+                                                <div class="progress-bar bg-info" role="progressbar" 
+                                                    style="width: ${progressPercentage}%" 
+                                                    aria-valuenow="${progressPercentage}" 
+                                                    aria-valuemin="0" 
+                                                    aria-valuemax="100">
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                // Player stats
+                if (Object.keys(tournament.data.playerStats).length > 0) {
+                    playerStatsEl.innerHTML = Object.entries(tournament.data.playerStats)
+                        .sort((a, b) => (b[1].wins - a[1].wins) || 
+                                          ((b[1].pointsScored - b[1].pointsAgainst) - (a[1].pointsScored - a[1].pointsAgainst)))
+                        .map(([player, stats]) => {
+                            const progressPercentage = Math.round(stats.progress);
+                            return `
+                                <tr>
+                                    <td>${player}</td>
+                                    <td>${stats.wins}-${stats.losses}</td>
+                                    <td>${stats.pointsScored}-${stats.pointsAgainst}</td>
+                                    <td>
+                                        <div class="progress">
+                                            <div class="progress-bar bg-success" role="progressbar" 
+                                                style="width: ${progressPercentage}%" 
+                                                aria-valuenow="${progressPercentage}" 
+                                                aria-valuemin="0" 
+                                                aria-valuemax="100">
+                                                ${progressPercentage}%
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                            `;
+                        }).join('');
+                } else {
+                    playerStatsEl.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-muted">No data available</td></tr>';
+                }
+                
+                // Recent results
+                const recentResults = [];
+                tournament.data.rounds.forEach(round => {
+                    round.forEach(match => {
+                        if (match.complete && match.player1 && match.player2) {
+                            if (tournament.settings.scoringSystem === '3' && match.sets.length > 0) {
+                                // For best of 3, show set scores
+                                const setScores = match.sets.map(set => `${set.player1}-${set.player2}`).join(', ');
+                                recentResults.push({
+                                    player1: match.player1,
+                                    player2: match.player2,
+                                    score1: match.scores.player1,
+                                    score2: match.scores.player2,
+                                    winner: match.winner,
+                                    setScores: setScores
+                                });
+                            } else {
+                                recentResults.push({
+                                    player1: match.player1,
+                                    player2: match.player2,
+                                    score1: match.scores.player1,
+                                    score2: match.scores.player2,
+                                    winner: match.winner
+                                });
+                            }
+                        }
+                    });
+                });
+                
+                if (recentResults.length > 0) {
+                    recentResultsEl.innerHTML = recentResults
+                        .slice(-5)
+                        .reverse()
+                        .map(result => `
+                            <div class="match-result">
+                                <div>
+                                    <span class="${result.winner === result.player1 ? 'font-weight-bold text-success' : ''}">
+                                        ${result.player1}
+                                    </span>
+                                    <span class="text-muted mx-1">vs</span>
+                                    <span class="${result.winner === result.player2 ? 'font-weight-bold text-success' : ''}">
+                                        ${result.player2}
+                                    </span>
+                                    ${result.setScores ? `<div class="text-muted small">Sets: ${result.setScores}</div>` : ''}
+                                </div>
+                                <span class="match-score">${result.score1}-${result.score2}</span>
+                            </div>
+                        `).join('');
+                } else {
+                    recentResultsEl.innerHTML = '<div class="text-center py-4 text-muted">No matches played yet</div>';
+                }
+            }
+            
+            // Edit tournament info
+            editTournamentInfoBtn.addEventListener('click', function() {
+                document.getElementById('tournamentName').value = tournament.name;
+                document.getElementById('tournamentDate').value = tournament.date || '';
+                document.getElementById('tournamentLocation').value = tournament.location || '';
+                document.getElementById('tournamentDescription').value = tournament.description || '';
+                tournamentInfoModal.show();
+            });
+            
+            // Save tournament info
+            saveTournamentInfoBtn.addEventListener('click', function() {
+                tournament.name = document.getElementById('tournamentName').value || 'Tournament Bracket System';
+                tournament.date = document.getElementById('tournamentDate').value;
+                tournament.location = document.getElementById('tournamentLocation').value;
+                tournament.description = document.getElementById('tournamentDescription').value;
+                
+                initTournamentInfo();
+                tournamentInfoModal.hide();
+                showAlert('success', 'Tournament information updated!');
+            });
+            
+            // Save to server
+            saveToServerBtn.addEventListener('click', function() {
+                serverSaveModal.show();
+            });
+            
+            confirmSaveToServerBtn.addEventListener('click', function() {
+                const tournamentId = document.getElementById('saveTournamentId').value;
+                const password = document.getElementById('saveTournamentPassword').value;
+                
+                // In a real app, you would send this to your server
+                // For this demo, we'll simulate it
+                setTimeout(() => {
+                    serverSaveModal.hide();
+                    showAlert('success', `Tournament saved successfully with ID: ${tournamentId || 'NEW'}`);
+                }, 1000);
+            });
+            
+            // Load from server
+            loadFromServerBtn.addEventListener('click', function() {
+                serverLoadModal.show();
+            });
+            
+            confirmLoadFromServerBtn.addEventListener('click', function() {
+                const tournamentId = document.getElementById('loadTournamentId').value;
+                const password = document.getElementById('loadTournamentPassword').value;
+                
+                // In a real app, you would fetch this from your server
+                // For this demo, we'll simulate loading a tournament
+                setTimeout(() => {
+                    // Simulated loaded tournament
+                    const loadedTournament = {
+                        name: 'Loaded Tournament',
+                        date: '2023-06-15',
+                        location: 'Conference Center',
+                        description: 'This is a loaded tournament example',
+                        settings: {
+                            scoringSystem: '1',
+                            seedingMethod: 'random'
+                        },
+                        players: ['Player 1', 'Player 2', 'Player 3', 'Player 4'],
+                        data: {
+                            rounds: [],
+                            byes: [],
+                            playerStats: {}
+                        }
+                    };
+                    
+                    // Update our tournament with loaded data
+                    tournament = loadedTournament;
+                    
+                    // Update UI
+                    initTournamentInfo();
+                    renderPlayerList();
+                    
+                    // Reset other data
+                    tournamentInfo.innerHTML = '<p class="text-muted">Add players and generate the bracket to begin the tournament.</p>';
+                    tournamentStatus.textContent = 'Not Started';
+                    tournamentStatus.className = 'badge bg-secondary';
+                    
+                    serverLoadModal.hide();
+                    showAlert('success', `Tournament loaded successfully with ID: ${tournamentId}`);
+                }, 1000);
+            });
+            
+            // Export full data
+            exportFullDataBtn.addEventListener('click', function() {
+                const dataStr = JSON.stringify(tournament, null, 2);
+                const blob = new Blob([dataStr], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `tournament-data-${new Date().toISOString().slice(0,10)}.json`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                
+                showAlert('success', 'Full tournament data exported!');
+            });
+            
+            // Import full data
+            importFullDataBtn.addEventListener('click', function() {
+                const input = document.createElement('input');
+                input.type = 'file';
+                input.accept = '.json';
+                
+                input.onchange = e => {
+                    const file = e.target.files[0];
+                    const reader = new FileReader();
+                    
+                    reader.onload = event => {
+                        try {
+                            const importedData = JSON.parse(event.target.result);
+                            
+                            // Validate the imported data
+                            if (!importedData.name || !importedData.players) {
+                                throw new Error('Invalid tournament data format');
+                            }
+                            
+                            // Update our tournament with imported data
+                            tournament = {
+                                ...importedData,
+                                // Ensure all required fields exist
+                                date: importedData.date || null,
+                                location: importedData.location || '',
+                                description: importedData.description || '',
+                                settings: {
+                                    scoringSystem: importedData.settings?.scoringSystem || '1',
+                                    seedingMethod: importedData.settings?.seedingMethod || 'random'
+                                },
+                                data: {
+                                    ...importedData.data,
+                                    playerStats: importedData.data?.playerStats || {}
+                                }
+                            };
+                            
+                            // Update UI
+                            initTournamentInfo();
+                            renderPlayerList();
+                            
+                            // If there's bracket data, generate it
+                            if (importedData.data && importedData.data.rounds) {
+                                generateBracket();
+                                updateStatistics();
+                                new bootstrap.Tab(bracketTab).show();
+                            } else {
+                                tournamentInfo.innerHTML = '<p class="text-muted">Add players and generate the bracket to begin the tournament.</p>';
+                                tournamentStatus.textContent = 'Not Started';
+                                tournamentStatus.className = 'badge bg-secondary';
+                            }
+                            
+                            showAlert('success', 'Tournament data imported successfully!');
+                        } catch (error) {
+                            showAlert('danger', 'Error importing tournament data: ' + error.message);
+                        }
+                    };
+                    
+                    reader.readAsText(file);
+                };
+                
+                input.click();
+            });
+            
+            // Reset bracket
+            resetBracketBtn.addEventListener('click', function() {
+                if (tournament.players.length === 0 || confirm('Are you sure you want to reset the bracket? This will clear all progress.')) {
+                    tournament.data = {
+                        rounds: [],
+                        byes: [],
+                        playerStats: {}
+                    };
+                    generateBracket();
+                    updateStatistics();
+                    
+                    tournamentInfo.innerHTML = '<p class="text-muted">Add players and generate the bracket to begin the tournament.</p>';
+                    tournamentStatus.textContent = 'Not Started';
+                    tournamentStatus.className = 'badge bg-secondary';
+                    
+                    showAlert('info', 'Bracket has been reset');
+                }
+            });
+            
+            // Show alert message
+            function showAlert(type, message) {
+                const alert = document.createElement('div');
+                alert.className = `alert alert-${type} alert-dismissible fade show`;
+                alert.role = 'alert';
+                alert.innerHTML = `
+                    ${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                `;
+                
+                const alertsContainer = document.createElement('div');
+                alertsContainer.className = 'position-fixed top-0 end-0 p-3';
+                alertsContainer.style.zIndex = '9999';
+                alertsContainer.appendChild(alert);
+                
+                document.body.appendChild(alertsContainer);
+                
+                // Auto-remove after 5 seconds
+                setTimeout(() => {
+                    alert.classList.remove('show');
+                    setTimeout(() => {
+                        alertsContainer.remove();
+                    }, 150);
+                }, 5000);
+            }
+            
+            // Initialize
+            initTournamentInfo();
+            renderPlayerList();
+        });
+    </script>
+</body>
+</html>

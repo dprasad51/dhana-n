@@ -251,6 +251,22 @@
             text-align: center;
             margin: 0 5px;
         }
+        
+        /* Added for iPad file handling */
+        .file-input-wrapper {
+            position: relative;
+            overflow: hidden;
+            display: inline-block;
+            width: 0;
+            height: 0;
+            opacity: 0;
+        }
+        
+        .file-input-label {
+            display: inline-block;
+            padding: 6px 12px;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
@@ -553,6 +569,14 @@
         </div>
     </div>
 
+    <!-- Hidden file inputs for iPad compatibility -->
+    <div class="file-input-wrapper">
+        <input type="file" id="playerImportFile" accept=".txt,.csv,.json">
+    </div>
+    <div class="file-input-wrapper">
+        <input type="file" id="fullDataImportFile" accept=".json">
+    </div>
+
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     
@@ -595,6 +619,8 @@
             const confirmLoadFromServerBtn = document.getElementById('confirmLoadFromServer');
             const scoringSystemSelect = document.getElementById('scoringSystem');
             const seedingMethodSelect = document.getElementById('seedingMethod');
+            const playerImportFile = document.getElementById('playerImportFile');
+            const fullDataImportFile = document.getElementById('fullDataImportFile');
             
             // Tournament data
             let tournament = {
@@ -700,34 +726,85 @@
                 });
             }
             
-            // Import players
+            // Import players - updated for iPad compatibility
             importPlayersBtn.addEventListener('click', function() {
-                const playerText = prompt('Enter player names, separated by commas:');
-                if (playerText) {
-                    const newPlayers = playerText.split(',')
-                        .map(name => name.trim())
-                        .filter(name => name.length > 0);
-                    
-                    tournament.players = [...new Set([...tournament.players, ...newPlayers])];
-                    renderPlayerList();
-                }
+                // Trigger the hidden file input
+                playerImportFile.click();
             });
             
-            // Export players
+            playerImportFile.addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                if (!file) return;
+                
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    try {
+                        let playerText = event.target.result;
+                        
+                        // Try to parse as JSON first
+                        try {
+                            const jsonData = JSON.parse(playerText);
+                            if (Array.isArray(jsonData)) {
+                                // It's an array of players
+                                tournament.players = [...new Set([...tournament.players, ...jsonData.map(p => p.trim())])];
+                            } else if (typeof jsonData === 'object' && jsonData.players) {
+                                // It's a tournament object with players array
+                                tournament.players = [...new Set([...tournament.players, ...jsonData.players.map(p => p.trim())])];
+                            } else {
+                                // Not a recognized JSON format, treat as text
+                                playerText = event.target.result;
+                                const newPlayers = playerText.split(/[\n,]/)
+                                    .map(name => name.trim())
+                                    .filter(name => name.length > 0);
+                                
+                                tournament.players = [...new Set([...tournament.players, ...newPlayers])];
+                            }
+                        } catch (jsonError) {
+                            // Not JSON, treat as plain text
+                            const newPlayers = playerText.split(/[\n,]/)
+                                .map(name => name.trim())
+                                .filter(name => name.length > 0);
+                            
+                            tournament.players = [...new Set([...tournament.players, ...newPlayers])];
+                        }
+                        
+                        renderPlayerList();
+                        showAlert('success', `${tournament.players.length} players loaded successfully!`);
+                    } catch (error) {
+                        showAlert('danger', 'Error importing players: ' + error.message);
+                    }
+                    
+                    // Reset the file input
+                    playerImportFile.value = '';
+                };
+                
+                reader.readAsText(file);
+            });
+            
+            // Export players - updated for iPad compatibility
             exportPlayersBtn.addEventListener('click', function() {
                 if (tournament.players.length === 0) {
                     showAlert('warning', 'No players to export');
                     return;
                 }
                 
-                const playerText = tournament.players.join(', ');
-                navigator.clipboard.writeText(playerText)
-                    .then(() => {
-                        showAlert('success', 'Player list copied to clipboard!');
-                    })
-                    .catch(() => {
-                        prompt('Copy this player list:', playerText);
-                    });
+                const playerText = tournament.players.join('\n');
+                const blob = new Blob([playerText], { type: 'text/plain' });
+                const url = URL.createObjectURL(blob);
+                
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'players-list.txt';
+                document.body.appendChild(a);
+                a.click();
+                
+                // Cleanup
+                setTimeout(() => {
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                }, 100);
+                
+                showAlert('success', 'Player list exported!');
             });
             
             // Clear players
@@ -1571,73 +1648,79 @@
                 a.download = `tournament-data-${new Date().toISOString().slice(0,10)}.json`;
                 document.body.appendChild(a);
                 a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
+                
+                // Cleanup
+                setTimeout(() => {
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                }, 100);
                 
                 showAlert('success', 'Full tournament data exported!');
             });
             
-            // Import full data
+            // Import full data - updated for iPad compatibility
             importFullDataBtn.addEventListener('click', function() {
-                const input = document.createElement('input');
-                input.type = 'file';
-                input.accept = '.json';
+                // Trigger the hidden file input
+                fullDataImportFile.click();
+            });
+            
+            fullDataImportFile.addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                if (!file) return;
                 
-                input.onchange = e => {
-                    const file = e.target.files[0];
-                    const reader = new FileReader();
-                    
-                    reader.onload = event => {
-                        try {
-                            const importedData = JSON.parse(event.target.result);
-                            
-                            // Validate the imported data
-                            if (!importedData.name || !importedData.players) {
-                                throw new Error('Invalid tournament data format');
-                            }
-                            
-                            // Update our tournament with imported data
-                            tournament = {
-                                ...importedData,
-                                // Ensure all required fields exist
-                                date: importedData.date || null,
-                                location: importedData.location || '',
-                                description: importedData.description || '',
-                                settings: {
-                                    scoringSystem: importedData.settings?.scoringSystem || '1',
-                                    seedingMethod: importedData.settings?.seedingMethod || 'random'
-                                },
-                                data: {
-                                    ...importedData.data,
-                                    playerStats: importedData.data?.playerStats || {}
-                                }
-                            };
-                            
-                            // Update UI
-                            initTournamentInfo();
-                            renderPlayerList();
-                            
-                            // If there's bracket data, generate it
-                            if (importedData.data && importedData.data.rounds) {
-                                generateBracket();
-                                updateStatistics();
-                                new bootstrap.Tab(bracketTab).show();
-                            } else {
-                                tournamentInfo.innerHTML = '<p class="text-muted">Add players and generate the bracket to begin the tournament.</p>';
-                                tournamentStatus.textContent = 'Not Started';
-                                tournamentStatus.className = 'badge bg-secondary';
-                            }
-                            
-                            showAlert('success', 'Tournament data imported successfully!');
-                        } catch (error) {
-                            showAlert('danger', 'Error importing tournament data: ' + error.message);
+                const reader = new FileReader();
+                
+                reader.onload = function(event) {
+                    try {
+                        const importedData = JSON.parse(event.target.result);
+                        
+                        // Validate the imported data
+                        if (!importedData.name || !importedData.players) {
+                            throw new Error('Invalid tournament data format');
                         }
-                    };
+                        
+                        // Update our tournament with imported data
+                        tournament = {
+                            ...importedData,
+                            // Ensure all required fields exist
+                            date: importedData.date || null,
+                            location: importedData.location || '',
+                            description: importedData.description || '',
+                            settings: {
+                                scoringSystem: importedData.settings?.scoringSystem || '1',
+                                seedingMethod: importedData.settings?.seedingMethod || 'random'
+                            },
+                            data: {
+                                ...importedData.data,
+                                playerStats: importedData.data?.playerStats || {}
+                            }
+                        };
+                        
+                        // Update UI
+                        initTournamentInfo();
+                        renderPlayerList();
+                        
+                        // If there's bracket data, generate it
+                        if (importedData.data && importedData.data.rounds) {
+                            generateBracket();
+                            updateStatistics();
+                            new bootstrap.Tab(bracketTab).show();
+                        } else {
+                            tournamentInfo.innerHTML = '<p class="text-muted">Add players and generate the bracket to begin the tournament.</p>';
+                            tournamentStatus.textContent = 'Not Started';
+                            tournamentStatus.className = 'badge bg-secondary';
+                        }
+                        
+                        showAlert('success', 'Tournament data imported successfully!');
+                    } catch (error) {
+                        showAlert('danger', 'Error importing tournament data: ' + error.message);
+                    }
                     
-                    reader.readAsText(file);
+                    // Reset the file input
+                    fullDataImportFile.value = '';
                 };
                 
-                input.click();
+                reader.readAsText(file);
             });
             
             // Reset bracket

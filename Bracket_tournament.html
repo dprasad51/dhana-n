@@ -1,165 +1,131 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Badminton Knockout Tournament</title>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Badminton Bracket</title>
 <style>
   :root{
-    --bg:#0f1115;
-    --panel:#151923;
-    --muted:#9aa4b2;
-    --accent:#49a8ff;
-    --accent-2:#7bdcff;
-    --text:#f2f5f9;
-    --error:#ff5370;
-
-    --box-w: 150px;
-    --box-h: 44px;
-    --col-gap: 160px;   /* space between rounds */
-    --h-gap: 22px;      /* line from box-right to junction */
-    --row-gap: 24px;    /* gap inside a pair */
-    --stack-gap: 40px;  /* gap between pairs */
+    --bg:#0f1115; --panel:#151923; --muted:#9aa4b2; --accent:#49a8ff; --text:#f2f5f9;
+    --win:#22c55e; --loss:#ef4444; --neutral:#7b88a8;
+    --box-w:170px; --box-h:50px; --col-gap:170px; --row-gap:26px;
   }
   *{box-sizing:border-box}
-  body{
-    margin:0;
-    background:var(--bg);
-    font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,'Helvetica Neue',Arial,'Noto Sans',sans-serif;
-    color:var(--text);
-  }
-  header{
-    padding:18px 20px;
-    border-bottom:1px solid #1e2430;
-    display:flex; gap:16px; align-items:center; flex-wrap:wrap;
-    background:linear-gradient(180deg,#121723, #0f1115);
-    position:sticky; top:0; z-index:5;
-  }
-  header h1{font-size:18px; margin:0; font-weight:700; letter-spacing:.2px}
-  .controls{
-    display:flex; gap:12px; align-items:center; flex-wrap:wrap;
-  }
-  .controls input[type="text"]{
-    width:280px; padding:10px 12px; border-radius:10px; border:1px solid #1f2633;
-    background:#0e1320; color:var(--text);
-  }
-  .controls textarea{
-    width:380px; height:64px; padding:10px 12px; border-radius:10px; border:1px solid #1f2633;
-    background:#0e1320; color:var(--text); resize:vertical;
-  }
-  .btn{
-    padding:10px 14px; border-radius:10px; border:1px solid #1f2633; cursor:pointer;
-    background:#121a2b; color:var(--text);
-  }
-  .btn.primary{ background:linear-gradient(180deg, #2a82ff, #1b73f8); border-color:#1b73f8; }
-  .btn.ghost{ background:#0e1320; }
-  .btn:disabled{ opacity:.6; cursor:not-allowed; }
-  label{font-size:13px; color:var(--muted)}
-
-  main{
-    display:grid; grid-template-columns: 1fr 320px; gap:16px;
-    padding:16px;
-  }
-  .board{
-    position:relative; overflow:auto; background:radial-gradient(1200px 300px at 30% -10%,rgba(73,168,255,.08),transparent),
-                                     radial-gradient(1200px 300px at 60% 110%,rgba(123,220,255,.06),transparent);
-    border:1px solid #1e2430; border-radius:16px; min-height:70vh;
-  }
-  .board-inner{
-    position:relative; margin:30px; min-width:900px; min-height:600px;
-  }
-
-  /* Bracket elements */
-  .box{
-    width:var(--box-w); height:var(--box-h);
-    background:#121a2b;
-    border:2px solid var(--accent);
-    border-radius:10px;
-    display:flex; align-items:center; justify-content:space-between;
-    padding:0 10px; gap:6px;
-    position:absolute;
-    font-weight:600; letter-spacing:.2px;
-    box-shadow:0 2px 0 rgba(0,0,0,.3), inset 0 0 0 1px rgba(255,255,255,.03);
-  }
-  .seed{
-    font-size:11px; color:var(--muted);
-    background:#0b1220; border:1px solid #1f2940; padding:3px 6px; border-radius:8px;
-  }
-  .name{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1; }
-
-  .line { position:absolute; background:var(--accent); }
-  .h-line{ height:2px; }
-  .v-line{ width:2px; }
-
-  /* Score widgets near the junction of each match */
+  body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Arial}
+  header{padding:12px 16px;background:#121723;display:flex;flex-wrap:wrap;gap:10px;align-items:center;border-bottom:1px solid #1e2430;position:sticky;top:0;z-index:5}
+  h1{margin:0;font-size:18px}
+  input,select,textarea{padding:6px 8px;border:1px solid #1f2633;background:#0e1320;color:var(--text);border-radius:6px}
+  textarea{width:220px;height:60px}
+  .btn{padding:6px 10px;border:1px solid #1f2633;background:#121a2b;color:var(--text);border-radius:6px;cursor:pointer}
+  .btn.primary{background:linear-gradient(180deg,#2a82ff,#1b73f8)}
+  .chiplist{display:flex;gap:6px;flex-wrap:wrap;max-width:100%}
+  .chip{padding:4px 8px;border-radius:999px;background:#0e1320;border:1px solid #203147;display:inline-flex;align-items:center;gap:6px}
+  .chip button{background:none;border:none;color:#9aa4b2;cursor:pointer}
+  main{display:grid;grid-template-columns:1fr 320px;gap:16px;padding:12px}
+  .board{position:relative;overflow:auto;border:1px solid #1e2430;border-radius:10px;background:#101520;min-height:80vh}
+  .board-inner{position:relative;margin:30px;min-width:1000px;min-height:600px}
+  .box{width:var(--box-w);height:var(--box-h);background:#121a2b;border:2px solid var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:600;position:absolute;transition:border-color .2s}
+  .box.win{border-color:var(--win)} .box.loss{border-color:var(--loss)}
+  .champ{border-color:gold;color:gold;background:#1b1b0f}
+  svg{position:absolute;inset:0;pointer-events:none}
+  .edge{stroke:var(--neutral);stroke-width:2}
+  .edge.win{stroke:var(--win)}
+  .edge.loss{stroke:var(--loss)}
   .scorecard{
-    position:absolute; transform:translate(8px,-50%);
-    background:var(--panel); border:1px solid #202637; border-radius:12px;
-    display:flex; align-items:center; gap:6px; padding:6px 8px;
-    box-shadow:0 10px 24px rgba(0,0,0,.25);
+    position:absolute;transform:translate(-50%,-130%);
+    background:var(--panel);border:1px solid #202637;border-radius:8px;padding:6px 8px;
+    display:flex;flex-wrap:wrap;gap:6px;align-items:center;justify-content:center;
+    z-index:10;min-width:260px
   }
-  .scorecard input{
-    width:44px; padding:6px 6px; border-radius:8px; border:1px solid #263149;
-    background:#0e1320; color:var(--text); text-align:center;
-  }
-  .scorecard .vs{ font-size:12px; color:var(--muted); padding:0 2px; }
-  .scorecard .small{ font-size:12px; color:#e6f2ff; }
+  .scorecard .lab{font-size:12px;color:#d9e6ff;white-space:nowrap;max-width:320px;overflow:hidden;text-overflow:ellipsis}
+  .scorecard input{width:50px;text-align:center}
+  aside{border:1px solid #1e2430;border-radius:10px;background:#111520;padding:10px;overflow:auto}
+  table{width:100%;font-size:12px;border-spacing:0 6px}
+  th{color:var(--muted);text-align:left;position:sticky;top:0;background:#0b1019}
+  td.win{color:var(--win)} td.loss{color:var(--loss)}
+  .confetti{position:absolute;width:8px;height:8px;background:gold;animation:fall 2.2s linear forwards}
+  @keyframes fall{to{transform:translateY(220px) rotate(540deg);opacity:0}}
+@media print {
+  .edge.win  { stroke: #22c55e !important; } /* green */
+  .edge.loss { stroke: #ef4444 !important; } /* red */
+  .edge      { stroke-width:2; vector-effect:non-scaling-stroke; shape-rendering:crispEdges; }
+}
+@media print {
+  header, aside { display:none !important; }
+  body { background:#fff; color:#000; }
 
-  /* Stats panel */
-  aside{
-    border:1px solid #1e2430; border-radius:16px; padding:12px; background:#111520;
-    position:sticky; top:80px; height: calc(100vh - 100px); overflow:auto;
-  }
-  aside h3{ margin:6px 8px 10px 8px; font-size:16px }
-  table{ width:100%; border-collapse:separate; border-spacing:0 6px; }
-  th, td{ font-size:12px; padding:6px 8px; text-align:right; }
-  th:first-child, td:first-child{ text-align:left; }
-  tr{
-    background:#0e1320; border:1px solid #1f2633;
-  }
-  th{ color:var(--muted); background:#0b1019; position:sticky; top:0; z-index:1 }
-  tr td.win{ color:#7bf2a7 }
-  tr td.loss{ color:#ff9aa7 }
-
-  .note{ font-size:12px; color:var(--muted); margin:8px 0 0 8px }
-
-  .champ{
-    background:linear-gradient(180deg,#1e2d45,#142034);
-    border-color:var(--accent-2);
+  .board { 
+    overflow:visible !important; 
+    border:none !important;
+    height:auto !important; 
+    width:auto !important;
   }
 
-  .legend{ font-size:12px; color:var(--muted); margin-left:auto; }
+  /* scale entire board (boxes + svg together) */
+  .board-inner {
+    margin:0 auto !important;
+    transform: scale(0.65);   /* adjust for 8/16/32 players */
+    transform-origin: top left;
+  }
+
+  svg, #lines {
+    width:100% !important;
+    height:100% !important;
+    overflow:visible !important;
+  }
+
+
+  .edge.win  { stroke:#22c55e !important; }  /* green winner */
+  .edge.loss { stroke:#ef4444 !important; }  /* red loser */
+  .edge      { stroke-width:2; vector-effect:non-scaling-stroke; }
+
+
+}
+
 </style>
 </head>
 <body>
 <header>
-  <h1>🏸 Badminton Knockout</h1>
-  <div class="controls">
-    <input id="playerName" type="text" placeholder="Add player name & press +"/>
-    <button class="btn" id="addBtn">＋ Add</button>
-    <textarea id="bulk" placeholder="Or paste names separated by comma or new lines"></textarea>
-    <button class="btn" id="bulkBtn">Add List</button>
-    <label><input type="checkbox" id="shuffle"/> Randomize seeding</label>
-    <button class="btn primary" id="buildBtn">Generate Bracket</button>
-    <button class="btn ghost" id="resetBtn">Reset</button>
-    <span class="legend" id="playersCount">0 players</span>
-  </div>
+  <h1 id="title">🏸 Badminton Bracket</h1>
+
+  <input id="playerName" placeholder="Add player"/>
+  <button class="btn" id="addBtn">＋</button>
+  <button class="btn" id="clearBtn">Clear</button>
+  <textarea id="bulk" placeholder="Paste names (comma / new lines)"></textarea>
+  <button class="btn" id="bulkBtn">Bulk</button>
+  <div class="chiplist" id="chips"></div>
+
+  <input id="tName" placeholder="Tournament name"/>
+  <input id="tDate" type="date"/>
+  <select id="matchType">
+    <option value="singles" selected>Singles</option>
+    <option value="doubles">Doubles (auto-pair)</option>
+  </select>
+  <select id="bestOf">
+    <option value="1">Single game</option>
+    <option value="3" selected>Best of 3</option>
+  </select>
+  <label><input type="checkbox" id="shuffle"/> Randomize</label>
+
+  <button class="btn primary" id="buildBtn">Build</button>
+  <button class="btn" id="resetBtn">Reset</button>
+  <button class="btn" id="exportBtn">Export</button>
+  <input id="importFile" type="file" accept="application/json" style="display:none"/>
+  <button class="btn" id="importBtn">Import</button>
+  <button class="btn" onclick="window.print()">🖨️ Print</button>
+  <span id="count">0 players</span>
 </header>
 
 <main>
   <section class="board">
-    <div class="board-inner" id="board"></div>
+    <div class="board-inner" id="board">
+      <svg id="lines" width="1200" height="800"></svg>
+    </div>
   </section>
-
   <aside>
-    <h3>📊 Player Statistics</h3>
-    <div class="note">Updates automatically when you save match scores.</div>
+    <h3>📊 Stats</h3>
     <table>
-      <thead>
-        <tr>
-          <th>Player</th><th>P</th><th>W</th><th>L</th><th>PF</th><th>PA</th><th>±</th>
-        </tr>
-      </thead>
+      <thead><tr><th>Player / Team</th><th>P</th><th>W</th><th>L</th></tr></thead>
       <tbody id="statsBody"></tbody>
     </table>
   </aside>
@@ -167,318 +133,158 @@
 
 <script>
 (function(){
-  // ----- State -----
-  const state = {
-    players: [],       // [{name, seed}]
-    rounds: [],        // rounds[r] = array of matches
-    boxes: [],         // boxes[r][i] = element for participant box in round r (r=0 players)
-    stats: new Map(),  // name -> {P,W,L,PF,PA}
+  const S={players:[],entries:[],rounds:[],stats:new Map(),meta:{},settings:{bestOf:3,matchType:'singles'}};
+  const q=id=>document.getElementById(id);
+  const board=q('board'); let svg=q('lines'); const statsBody=q('statsBody'); const chips=q('chips');
+
+  const el=(t,c,s)=>{const x=document.createElement(t);if(c)x.className=c;if(s)Object.assign(x.style,s);return x};
+  const esc=s=>String(s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[m]));
+
+  function updateCount(){q('count').textContent=`${S.players.length} player${S.players.length===1?'':'s'}`;}
+  function drawChips(){chips.innerHTML='';S.players.forEach((p,i)=>{const c=el('div','chip');c.innerHTML=`<span>${esc(p.name)}</span>`;const b=el('button');b.textContent='✖';b.onclick=()=>{S.players.splice(i,1);drawChips();updateCount();};c.appendChild(b);chips.appendChild(c);});}
+
+  q('addBtn').onclick=()=>{const v=q('playerName').value.trim();if(!v)return;S.players.push({name:v});q('playerName').value='';drawChips();updateCount();};
+  q('playerName').addEventListener('keydown',e=>{if(e.key==='Enter')q('addBtn').click();});
+  q('bulkBtn').onclick=()=>{q('bulk').value.split(/[,\r\n]+/).map(s=>s.trim()).filter(Boolean).forEach(n=>S.players.push({name:n}));q('bulk').value='';drawChips();updateCount();};
+  q('clearBtn').onclick=()=>{S.players=[];drawChips();updateCount();};
+
+  const BW=170,BH=50,CG=170,RG=26;
+  const topFor=i=>i*(BH+RG);const cy=t=>t+BH/2;
+
+  function shuffleArr(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}}
+  function resizeSVG(){const boxes=[...board.querySelectorAll('.box')];if(!boxes.length){svg.setAttribute('width',1200);svg.setAttribute('height',800);return;}let maxX=0,maxY=0;boxes.forEach(b=>{const x=parseFloat(b.style.left)+BW,y=parseFloat(b.style.top)+BH;if(x>maxX)maxX=x;if(y>maxY)maxY=y;});svg.setAttribute('width',Math.max(600,maxX+60));svg.setAttribute('height',Math.max(400,maxY+60));}
+
+  q('buildBtn').onclick=()=>{
+    if(S.players.length<2){alert('Add players');return;}
+    S.settings.matchType=q('matchType').value;
+    S.settings.bestOf=parseInt(q('bestOf').value,10);
+
+    let entries=[];
+    if(S.settings.matchType==='doubles'){
+      if(S.players.length%2){alert('Even number required for doubles');return;}
+      for(let i=0;i<S.players.length;i+=2)entries.push(`${S.players[i].name} & ${S.players[i+1].name}`);
+    }else entries=S.players.map(p=>p.name);
+
+    if((entries.length&(entries.length-1))!==0){alert('Entries must be power of two');return;}
+    if(q('shuffle').checked)shuffleArr(entries);
+
+    S.entries=[...entries];
+    S.meta.name=q('tName').value||'Tournament';S.meta.date=q('tDate').value||new Date().toISOString().slice(0,10);
+    q('title').textContent=`🏸 ${S.meta.name} (${S.meta.date})`;
+    S.stats.clear();entries.forEach(n=>S.stats.set(n,{P:0,W:0,L:0}));
+
+    board.innerHTML='<svg id="lines"></svg>';svg=q('lines');
+    layout(entries);resizeSVG();renderStats();
   };
 
-  // ----- DOM -----
-  const el = (tag, cls, styles) => {
-    const x = document.createElement(tag);
-    if (cls) x.className = cls;
-    if (styles) Object.assign(x.style, styles);
-    return x;
-  };
+  q('resetBtn').onclick=()=>{board.innerHTML='<svg id="lines"></svg>';svg=q('lines');S.rounds=[];S.stats.clear();statsBody.innerHTML='';};
 
-  const board = document.getElementById('board');
-  const statsBody = document.getElementById('statsBody');
-  const playerName = document.getElementById('playerName');
-  const addBtn = document.getElementById('addBtn');
-  const bulk = document.getElementById('bulk');
-  const bulkBtn = document.getElementById('bulkBtn');
-  const shuffle = document.getElementById('shuffle');
-  const buildBtn = document.getElementById('buildBtn');
-  const resetBtn = document.getElementById('resetBtn');
-  const playersCount = document.getElementById('playersCount');
+  function layout(entries){
+    S.rounds=[];let prev=[];
+    entries.forEach((name,i)=>prev.push(createBox(name,0,topFor(i),false)));
+    const roundsCount=Math.log2(entries.length)|0;
+    for(let r=0;r<roundsCount;r++){
+      const curr=[];S.rounds[r]=[];
+      for(let m=0;m<prev.length/2;m++){
+        const A=prev[2*m],B=prev[2*m+1];
+        const yA=cy(parseFloat(A.style.top)), yB=cy(parseFloat(B.style.top)), midY=(yA+yB)/2;
+        const T=createBox('—',(r+1)*(BW+CG),midY-BH/2,r===roundsCount-1);
 
-  addBtn.onclick = () => {
-    const v = playerName.value.trim();
-    if(!v) return;
-    state.players.push({name: v});
-    playerName.value = '';
-    refreshPlayersCount();
-  };
-  playerName.addEventListener('keydown', e => { if(e.key==='Enter') addBtn.click(); });
+        // geometry
+        const ax=parseFloat(A.style.left)+BW, bx=parseFloat(B.style.left)+BW;
+        const tx=parseFloat(T.style.left);
+        const jx = (ax+tx)/2; // single joint X
 
-  bulkBtn.onclick = () => {
-    const list = bulk.value.split(/[\n,]+/).map(s=>s.trim()).filter(Boolean);
-    list.forEach(n => state.players.push({name:n}));
-    bulk.value = '';
-    refreshPlayersCount();
-  };
+        // draw lines
+        const hA  = line(ax, yA, jx, yA);
+        const vA  = line(jx, Math.min(yA, midY), jx, Math.max(yA, midY));
+        const hB  = line(bx, yB, jx, yB);
+        const vB  = line(jx, Math.min(yB, midY), jx, Math.max(yB, midY));
+        const hF  = line(jx, midY, tx, midY);
 
-  resetBtn.onclick = () => {
-    state.players = [];
-    state.rounds = [];
-    state.boxes = [];
-    state.stats.clear();
-    board.innerHTML = '';
-    statsBody.innerHTML = '';
-    refreshPlayersCount();
-  };
+        // Scorecard ABOVE the winner box
+        const card=el('div','scorecard',{left:(tx+BW/2)+'px',top:(parseFloat(T.style.top))+'px'});
+        const label=el('span','lab');label.textContent=`${A.dataset.name} vs ${B.dataset.name}`;label.title=label.textContent;card.appendChild(label);
+        const sets=[];for(let i=0;i<S.settings.bestOf;i++){const ia=el('input');ia.type='number';ia.min='0';const ib=el('input');ib.type='number';ib.min='0';sets.push([ia,ib]);card.append(ia,ib);}
+        const save=el('button');save.textContent='Save';card.appendChild(save);board.appendChild(card);
 
-  function refreshPlayersCount(){
-    playersCount.textContent = `${state.players.length} player${state.players.length===1?'':'s'}`;
+        const mo={A,B,T,lines:{hA,vA,hB,vB,hF},card,label,sets,saved:false};
+        save.onclick=()=>finalize(mo);
+        S.rounds[r].push(mo);curr.push(T);
+      }prev=curr;
+    }
   }
 
-  // ----- Build Bracket -----
-  buildBtn.onclick = () => {
-    if (state.players.length < 2){
-      alert('Add at least 2 players.');
-      return;
-    }
-    const n = nearestPowerOfTwo(state.players.length);
-    if (n !== state.players.length) {
-      alert(`Number of players must be a power of two. You have ${state.players.length}. (2,4,8,16,32,...)`);
-      return;
-    }
+  function createBox(name,left,top,isChamp){const b=el('div','box'+(isChamp?' champ':''),{left:left+'px',top:top+'px'});b.textContent=name;b.dataset.name=name;board.appendChild(b);return b;}
+  function line(x1,y1,x2,y2){const L=document.createElementNS('http://www.w3.org/2000/svg','line');L.setAttribute('x1',x1);L.setAttribute('y1',y1);L.setAttribute('x2',x2);L.setAttribute('y2',y2);L.setAttribute('class','edge');svg.appendChild(L);return L;}
 
-    const seeds = [...state.players];
-    if (shuffle.checked) shuffleArray(seeds);
+  function setWinForA(mo){
+    mo.lines.hA.classList.add('win'); mo.lines.vA.classList.add('win');
+    mo.lines.hB.classList.add('loss'); mo.lines.vB.classList.add('loss');
+    mo.lines.hF.classList.add('win');
+    mo.A.classList.add('win'); mo.B.classList.add('loss');
+  }
+  function setWinForB(mo){
+    mo.lines.hB.classList.add('win'); mo.lines.vB.classList.add('win');
+    mo.lines.hA.classList.add('loss'); mo.lines.vA.classList.add('loss');
+    mo.lines.hF.classList.add('win');
+    mo.B.classList.add('win'); mo.A.classList.add('loss');
+  }
 
-    // Init stats
-    state.stats.clear();
-    seeds.forEach((p,i) => {
-      state.stats.set(p.name, {P:0,W:0,L:0,PF:0,PA:0});
-      p.seed = i+1;
-    });
+  function finalize(mo, presetSets=null){
+    if(mo.saved)return;
+    let wA=0,wB=0;
+    const vals=presetSets || mo.sets.map(([ia,ib])=>[parseInt(ia.value)||0,parseInt(ib.value)||0]);
+    vals.forEach(([sa,sb])=>{if(sa>sb)wA++;else if(sb>sa)wB++;});
+    if(wA===wB){alert('Tie not allowed');return;}
+    const winner=wA>wB?mo.A.dataset.name:mo.B.dataset.name, loser=wA>wB?mo.B.dataset.name:mo.A.dataset.name;
 
-    // Clear board
-    board.innerHTML = '';
-    state.rounds = [];
-    state.boxes = [];
+    // forward name & box classes
+    mo.T.textContent=winner; mo.T.dataset.name=winner;
+    if(wA>wB) setWinForA(mo); else setWinForB(mo);
 
-    layoutBracket(seeds.map(p=>p.name), seeds.map(p=>p.seed));
-    renderStats();
-  };
+    // lock inputs
+    mo.sets.flat().forEach(i=>i.disabled=true);
+    const btn=mo.card.querySelector('button'); if(btn) btn.disabled=true;
+    mo.saved=true;
 
-  // Layout constants
-  const BOX_W = 150, BOX_H = 44, COL_GAP = 160, H_GAP = 22, ROW_GAP = 24, STACK_GAP = 40;
+    // stats
+    const w=S.stats.get(winner)||{P:0,W:0,L:0};
+    const l=S.stats.get(loser)||{P:0,W:0,L:0};
+    w.P++;w.W++;l.P++;l.L++;S.stats.set(winner,w);S.stats.set(loser,l);renderStats();
 
-  function layoutBracket(namesRound0, seedsRound0){
-    const roundsCount = Math.log2(namesRound0.length);
-    const totalWidth = roundsCount * (BOX_W + COL_GAP) + BOX_W + 100;
-    const totalHeight = computeBoardHeight(namesRound0.length);
-    board.style.width = totalWidth+'px';
-    board.style.height = totalHeight+'px';
-
-    // Build round 0 boxes
-    state.boxes[0] = [];
-    const centers0 = [];
-    for (let i=0;i<namesRound0.length;i++){
-      const col = 0, left = col*(BOX_W+COL_GAP);
-      const top = topForIndex(i);
-      const b = createBox(namesRound0[i], seedsRound0[i], left, top);
-      board.appendChild(b);
-      state.boxes[0].push(b);
-      centers0.push(centerY(top));
-    }
-
-    // For each subsequent round
-    let prevCenters = centers0;
-    let prevNames = namesRound0;
-    let prevSeeds = seedsRound0;
-    for (let r=0; r<roundsCount; r++){
-      const matches = [];
-      state.boxes[r+1] = [];
-      const nextCenters = [];
-      const nextNames = new Array(prevNames.length/2).fill('');
-      const nextSeeds = new Array(prevSeeds.length/2).fill('');
-
-      const colLeft = (r)*(BOX_W+COL_GAP);
-      const colRight = (r+1)*(BOX_W+COL_GAP);
-      const junctionX = colLeft + BOX_W + H_GAP;
-
-      for (let m=0; m<prevNames.length/2; m++){
-        const iA = 2*m, iB = 2*m+1;
-        const yA = prevCenters[iA], yB = prevCenters[iB];
-        const midY = (yA + yB)/2;
-
-        // Lines from A and B to junction (horizontal)
-        const bA = state.boxes[r][iA], bB = state.boxes[r][iB];
-        // A
-        addHLine(bA, junctionX);
-        // B
-        addHLine(bB, junctionX);
-        // Vertical line between A and B at junction
-        addVLine(junctionX, yA, yB);
-        // Winner horizontal to next round box-left
-        const winnerLeft = colRight;
-        addHLineFromPoint(junctionX, midY, winnerLeft);
-
-        // Create winner box in next round at midY
-        const winnerTop = midY - BOX_H/2;
-        const winnerBox = createBox('—', '', winnerLeft, winnerTop, r === roundsCount-1 ? true : false);
-        board.appendChild(winnerBox);
-        state.boxes[r+1].push(winnerBox);
-        nextCenters.push(midY);
-
-        // Score card for this match (positioned at junction)
-        createScoreCard({
-          round:r, match:m,
-          a: { name: prevNames[iA], seed: prevSeeds[iA], box: bA },
-          b: { name: prevNames[iB], seed: prevSeeds[iB], box: bB },
-          targetBox: winnerBox,
-          x: junctionX, y: midY,
-          onWinner:(winner, loser, sa, sb)=>{
-            // Push forward the name
-            winnerBox.dataset.name = winner;
-            winnerBox.querySelector('.name').textContent = winner;
-            // For next round arrays
-            nextNames[m] = winner;
-            nextSeeds[m] = ''; // seed no longer relevant
-            // Update stats
-            updateStats(winner, loser, sa, sb);
-            renderStats();
-
-            // If all matches of this round are decided, ensure connectors for next round are drawn (already drawn)
-            // If final decided, mark champion
-            if (r === roundsCount-1){
-              winnerBox.classList.add('champ');
-              winnerBox.querySelector('.seed').textContent = '🏆';
-            }
-          }
-        });
-
-        matches.push({A:iA, B:iB, midY, winnerBox});
+    // refresh next labels
+    for(const round of S.rounds){
+      for(const next of round){
+        if(next.A===mo.T||next.B===mo.T){
+          next.label.textContent=`${next.A.dataset.name} vs ${next.B.dataset.name}`;
+          next.label.title=next.label.textContent;
+        }
       }
+    }
+    if(mo.T.classList.contains('champ')) sprinkleConfetti(mo.T);
+  }
 
-      state.rounds[r] = matches;
-      prevCenters = nextCenters;
-      prevNames = nextNames;
-      prevSeeds = nextSeeds;
+  function renderStats(){statsBody.innerHTML='';for(const [name,s]of S.stats){const tr=document.createElement('tr');tr.innerHTML=`<td>${esc(name)}</td><td>${s.P}</td><td class="win">${s.W}</td><td class="loss">${s.L}</td>`;statsBody.appendChild(tr);}}
+
+  function sprinkleConfetti(box){
+    const bx=parseFloat(box.style.left)+BW/2,by=parseFloat(box.style.top)+BH/2;
+    for(let i=0;i<60;i++){
+      const c=el('div','confetti');
+      c.style.left=bx+'px'; c.style.top=by+'px';
+      c.style.background=`hsl(${Math.random()*360},100%,50%)`;
+      c.style.transform=`translate(${(Math.random()-0.5)*260}px,0)`;
+      c.style.animationDuration=(1+Math.random()*2.2)+'s';
+      board.appendChild(c);
+      setTimeout(()=>c.remove(),2500);
     }
   }
 
-  // ---- Geometry helpers ----
-  function centerY(top){ return top + BOX_H/2; }
-  function topForIndex(i){
-    // For round 0: boxes come in pairs:
-    // pair height = BOX_H*2 + ROW_GAP
-    const pair = Math.floor(i/2);
-    const idxInPair = i%2; // 0 or 1
-    const pairStartTop = pair*(BOX_H*2 + ROW_GAP + STACK_GAP);
-    return pairStartTop + idxInPair*(BOX_H + ROW_GAP);
-  }
-  function computeBoardHeight(n){
-    const pairs = n/2;
-    return pairs*(BOX_H*2 + ROW_GAP + STACK_GAP) - STACK_GAP + 60;
-  }
-
-  // ---- Rendering pieces ----
-  function createBox(name, seed, left, top, isChampion=false){
-    const d = el('div','box', {left:left+'px', top:top+'px', width:BOX_W+'px', height:BOX_H+'px'});
-    const s = el('div','seed');
-    s.textContent = seed ? `#${seed}` : (isChampion ? '🏆' : '');
-    const nm = el('div','name'); nm.textContent = name || '—';
-    d.append(s, nm);
-    d.dataset.name = name || '';
-    return d;
-  }
-  function addHLine(boxEl, junctionX){
-    const rectLeft = parseFloat(boxEl.style.left);
-    const y = centerY(parseFloat(boxEl.style.top));
-    const x1 = rectLeft + BOX_W;
-    const w = junctionX - x1;
-    const line = el('div','line h-line',{ left:x1+'px', top:(y-1)+'px', width:w+'px' });
-    board.appendChild(line);
-  }
-  function addHLineFromPoint(xStart, y, boxLeft){
-    const w = boxLeft - xStart;
-    const line = el('div','line h-line',{ left:xStart+'px', top:(y-1)+'px', width:w+'px' });
-    board.appendChild(line);
-  }
-  function addVLine(x, y1, y2){
-    const top = Math.min(y1,y2);
-    const h = Math.abs(y2-y1);
-    const v = el('div','line v-line',{ left:(x-1)+'px', top:top+'px', height:h+'px' });
-    board.appendChild(v);
-  }
-
-  // Scorecard for a match (two inputs + save)
-  function createScoreCard({round, match, a, b, targetBox, x, y, onWinner}){
-    const card = el('div','scorecard', { left:x+'px', top:y+'px' });
-    const inA = el('input'); inA.type='number'; inA.min='0'; inA.placeholder='A';
-    const vs = el('span','vs'); vs.textContent = '—';
-    const inB = el('input'); inB.type='number'; inB.min='0'; inB.placeholder='B';
-    const save = el('button','btn small'); save.textContent='Save';
-    const label = el('span','small');
-    label.textContent = `${a.name} vs ${b.name}`;
-    card.prepend(label);
-    card.append(inA, vs, inB, save);
-    board.appendChild(card);
-
-    let locked = false;
-
-    save.onclick = () => {
-      if (locked) return;
-      const sa = parseInt(inA.value,10);
-      const sb = parseInt(inB.value,10);
-      if (Number.isNaN(sa) || Number.isNaN(sb)) { alert('Enter scores for both players.'); return; }
-      if (sa===sb){ alert('Scores cannot be equal.'); return; }
-      const winner = sa>sb ? a.name : b.name;
-      const loser  = sa>sb ? b.name : a.name;
-
-      // Visual: put winner name into next box
-      targetBox.dataset.name = winner;
-      targetBox.querySelector('.name').textContent = winner;
-
-      // mark winner/loser styles on current boxes (optional subtle color)
-      a.box.style.borderColor = sa>sb ? '#6ee7b7' : '#ff9aa7';
-      b.box.style.borderColor = sb>sa ? '#6ee7b7' : '#ff9aa7';
-
-      if (onWinner) onWinner(winner, loser, sa, sb);
-
-      // lock
-      inA.disabled = inB.disabled = true;
-      save.disabled = true;
-      locked = true;
-    };
-  }
-
-  // ---- Stats ----
-  function updateStats(winner, loser, sw, sl){
-    const w = state.stats.get(winner);
-    const l = state.stats.get(loser);
-    if(!w || !l) return;
-    w.P++; w.W++; w.PF += sw; w.PA += sl;
-    l.P++; l.L++; l.PF += sl; l.PA += sw;
-  }
-  function renderStats(){
-    const rows = [];
-    state.stats.forEach((v,k) => {
-      rows.push({name:k, ...v, diff:v.PF - v.PA});
-    });
-    // sort by Wins desc, then diff desc, then PF desc
-    rows.sort((a,b)=> b.W - a.W || b.diff - a.diff || b.PF - a.PF || a.name.localeCompare(b.name));
-    statsBody.innerHTML = rows.map(r => `
-      <tr>
-        <td>${esc(r.name)}</td>
-        <td>${r.P}</td>
-        <td class="win">${r.W}</td>
-        <td class="loss">${r.L}</td>
-        <td>${r.PF}</td>
-        <td>${r.PA}</td>
-        <td>${r.diff>=0?'+':''}${r.diff}</td>
-      </tr>
-    `).join('');
-  }
-
-  // ---- Utils ----
-  function nearestPowerOfTwo(n){
-    // require exact power of two
-    return (n & (n-1)) === 0 ? n : -1;
-  }
-  function shuffleArray(a){
-    for(let i=a.length-1;i>0;i--){
-      const j = (Math.random()* (i+1))|0;
-      [a[i],a[j]]=[a[j],a[i]];
-    }
-  }
-  function esc(s){ return s.replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+  q('exportBtn').onclick=()=>{const data=JSON.stringify({players:S.players,meta:S.meta,stats:[...S.stats]},null,2);const blob=new Blob([data],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`${S.meta.name||'tournament'}.json`;a.click();};
+  q('importBtn').onclick=()=>q('importFile').click();
+  q('importFile').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=ev=>{try{const o=JSON.parse(ev.target.result);S.players=o.players||[];S.meta=o.meta||{};S.stats=new Map(o.stats||[]);drawChips();updateCount();renderStats();}catch(err){alert('Bad file')}};r.readAsText(f);};
+  window.onbeforeprint = resizeSVG;
+window.onbeforeprint = resizeSVG;
 
 })();
 </script>

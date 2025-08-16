@@ -173,7 +173,16 @@
 
   // Actions
   buildBtn.onclick=()=>buildFromPlayers();
-  resetBtn.onclick=()=>{board.innerHTML='<svg id="lines"></svg>'; svg=q('lines'); S.rounds=[]; S.stats.clear(); statsBody.innerHTML='';};
+resetBtn.onclick=()=>{
+  board.innerHTML='<svg id="lines"></svg>';
+  svg=q('lines');
+  S.rounds=[];
+  S.stats.clear();
+  S.players=[];
+  S.entries=[];
+  statsBody.innerHTML='';
+  updateCount();
+};
   printBtn.onclick=()=>window.print();
 
   function buildFromPlayers(){
@@ -416,12 +425,26 @@
   }
 
   // Export / Import (Import rebuilds; iPad-friendly)
-  exportBtn.onclick=()=>{
-    const data=JSON.stringify({players:S.players,entries:S.entries,meta:S.meta,stats:[...S.stats]},null,2);
-    const blob=new Blob([data],{type:'application/json'});
-    const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
-    a.download=`${S.meta.name||'tournament'}.json`; a.click();
-  };
+ exportBtn.onclick=()=>{
+  const rounds = S.rounds.map(rnd=>rnd.map(mo=>({
+    A: mo.A?.dataset.name,
+    B: mo.B?.dataset.name,
+    T: mo.T?.dataset.name,
+    winner: mo.T?.dataset.name,
+    saved: mo.saved || false
+  })));
+  const data=JSON.stringify({
+    players:S.players,
+    entries:S.entries,
+    meta:S.meta,
+    stats:[...S.stats],
+    rounds:rounds
+  },null,2);
+  const blob=new Blob([data],{type:'application/json'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+  a.download=`${S.meta.name||'tournament'}.json`; a.click();
+};
+
   importBtn.onclick=()=>importFile.click();
   importFile.onchange=e=>{
     const f=e.target.files[0]; if(!f) return;
@@ -440,13 +463,37 @@
         formatSel.value = S.meta.format || 'single';
         updateCount(); renderStats();
         // Prefer saved entries for building if present
-        if(S.entries.length>=2){
-          board.innerHTML='<svg id="lines"></svg>'; svg=q('lines');
-          S.stats.clear();
-          S.entries.filter(n=>n!=='BYE').forEach(n=>S.stats.set(n,{P:0,W:0,L:0,PF:0,PA:0}));
-          layout(S.entries);
-          resizeSVG(); renderStats();
-        }else if(S.players.length>=2){
+      if (S.entries.length >= 2) {
+  board.innerHTML = '<svg id="lines"></svg>';
+  svg = q('lines');
+  // If no stats were stored, initialize
+  if (!S.stats || S.stats.size === 0) {
+    S.stats = new Map();
+    S.entries.filter(n => n !== 'BYE').forEach(n =>
+      S.stats.set(n, { P: 0, W: 0, L: 0, PF: 0, PA: 0 })
+    );
+  }
+  layout(S.entries);
+  if(o.rounds){
+  S.rounds.forEach((rnd,i)=>{
+    rnd.forEach((mo,j)=>{
+      const saved=o.rounds[i]?.[j];
+      if(saved?.winner && saved.winner!=='BYE'){
+        forwardWinner(mo, saved.winner, 0, 0, false);
+        mo.saved=true;
+      }
+    });
+  });
+}
+
+  resizeSVG();
+  renderStats();
+  
+  
+}
+
+
+        else if(S.players.length>=2){
           buildFromPlayers();
         }else{
           alert('Imported file has no players/entries');

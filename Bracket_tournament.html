@@ -508,8 +508,6 @@ exportBtn.onclick = () => {
   a.download = `${S.meta.name || "tournament"}.json`;
   a.click();
 };
-localStorage.setItem("tournamentData", data);
-
 
 importBtn.onclick=()=>importFile.click();
 importFile.onchange = e => {

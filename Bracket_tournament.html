@@ -23,6 +23,9 @@
       linear-gradient(90deg,#0d1220,#121a2e 35%,#0f1f24 65%,#111625);
     box-shadow:0 2px 0 rgba(0,0,0,.35), inset 0 0 0 1px rgba(255,255,255,.02);
   }
+
+
+
   h1{margin:0 6px 0 0; font-size:18px; letter-spacing:.2px}
   .controls{display:flex; gap:8px; align-items:center; flex-wrap:wrap}
   input,textarea,select{padding:6px 10px; border-radius:10px; border:1px solid #1f2738; background:#0e1320; color:var(--text)}
@@ -30,6 +33,49 @@
   .btn{padding:6px 10px; border-radius:10px; border:1px solid #1f2738; background:#132037; color:var(--text); cursor:pointer}
   .btn.primary{background:linear-gradient(180deg,#2a82ff,#1b73f8); border-color:#1b73f8}
   .legend{font-size:12px; color:var(--muted); margin-left:4px}
+
+  /* Player list */
+#playerList {
+  list-style: none;
+  padding: 0;
+  margin: 10px 0;
+  max-height: 200px;
+  overflow-y: auto;
+  border: 1px solid #444;
+  border-radius: 6px;
+  background: #1e1e1e;
+}
+
+#playerList li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 10px;
+  border-bottom: 1px solid #333;
+  color: #eee;
+  font-size: 14px;
+}
+
+#playerList li:last-child {
+  border-bottom: none;
+}
+
+/* Delete button */
+#playerList button {
+  background: #206ed3;
+  color: white;
+  border: none;
+  padding: 4px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: background 0.2s ease;
+}
+
+#playerList button:hover {
+  background: #d32f2f;
+}
+
 
   main{display:grid; grid-template-columns:1fr 320px; gap:14px; padding:14px}
   .board{position:relative; overflow:auto; border:1px solid #1a2233; border-radius:14px; background:
@@ -118,6 +164,8 @@
     <button class="btn" id="importBtn">Import</button>
 
     <span class="legend" id="count">0 players</span>
+    <ul id="playerList"></ul>
+
 
     <!-- adding players placed LAST -->
     <input id="playerName" placeholder="Add player or Team (A & B)">
@@ -145,367 +193,393 @@
 
 <script>
 (function(){
-  const S={players:[],entries:[],rounds:[],stats:new Map(),meta:{name:'',date:'',mode:'singles',format:'single'}};
-  const q=id=>document.getElementById(id);
-  const board=q('board'); let svg=q('lines'); const statsBody=q('statsBody');
+    const S={players:[],entries:[],rounds:[],stats:new Map(),meta:{name:'',date:'',mode:'singles',format:'single'}};
+const q=id=>document.getElementById(id);
+const board=q('board'); let svg=q('lines'); const statsBody=q('statsBody');
 
-  // UI refs
-  const modeSel=q('mode'), formatSel=q('format');
-  const tName=q('tName'), tDate=q('tDate'), title=q('title');
-  const playerName=q('playerName'), addBtn=q('addBtn');
-  const bulk=q('bulk'), bulkBtn=q('bulkBtn'), clearBtn=q('clearBtn');
-  const count=q('count'), shuffle=q('shuffle');
-  const buildBtn=q('buildBtn'), resetBtn=q('resetBtn'), printBtn=q('printBtn');
-  const exportBtn=q('exportBtn'), importBtn=q('importBtn'), importFile=q('importFile');
+// UI refs
+const modeSel=q('mode'), formatSel=q('format');
+const tName=q('tName'), tDate=q('tDate'), title=q('title');
+const playerName=q('playerName'), addBtn=q('addBtn');
+const bulk=q('bulk'), bulkBtn=q('bulkBtn'), clearBtn=q('clearBtn');
+const count=q('count'), shuffle=q('shuffle');
+const buildBtn=q('buildBtn'), resetBtn=q('resetBtn'), printBtn=q('printBtn');
+const exportBtn=q('exportBtn'), importBtn=q('importBtn'), importFile=q('importFile');
 
-  // helpers
-  const el=(t,c,s)=>{const x=document.createElement(t); if(c) x.className=c; if(s) Object.assign(x.style,s); return x};
-  const esc=s=>String(s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;","&gt;":"&gt;","\"":"&quot;","'":"&#39;"}[m]||m));
-  function updateCount(){count.textContent=`${S.players.length} player${S.players.length===1?'':'s'}`;}
-  function shuffleArr(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}}
-  const BW=180,BH=48,CG=180,RG=28; const cy=t=>t+BH/2;
+// helpers
+const el=(t,c,s)=>{const x=document.createElement(t); if(c) x.className=c; if(s) Object.assign(x.style,s); return x};
+const esc = s => String(s).replace(/[&<>"']/g, m =>
+  ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[m] || m)
+);
+function updateCount() {
+  count.textContent = `${S.players.length} player${S.players.length === 1 ? '' : 's'}`;
 
-  // Add players
-  addBtn.onclick=()=>{const v=playerName.value.trim(); if(!v) return; S.players.push({name:v}); playerName.value=''; updateCount();};
-  playerName.addEventListener('keydown',e=>{if(e.key==='Enter') addBtn.click();});
-  bulkBtn.onclick=()=>{bulk.value.split(/[,\r\n]+/).map(s=>s.trim()).filter(Boolean).forEach(n=>S.players.push({name:n})); bulk.value=''; updateCount();};
-  clearBtn.onclick=()=>{S.players=[]; updateCount();};
+  // render player list
+  const list = q('playerList');
+  list.innerHTML = '';
+  S.players.forEach((p, i) => {
+    const li = document.createElement('li');
+    li.textContent = p.name;
 
-  // Actions
-  buildBtn.onclick=()=>buildFromPlayers();
-resetBtn.onclick=()=>{
-  board.innerHTML='<svg id="lines"></svg>';
-  svg=q('lines');
-  S.rounds=[];
+    // delete button
+    const del = document.createElement('button');
+    del.textContent = '❌';
+    del.className = 'btn';
+    del.style.marginLeft = '8px';
+    del.onclick = () => {
+      S.players.splice(i, 1);   // remove player
+      updateCount();            // re-render
+    };
+
+    li.appendChild(del);
+    list.appendChild(li);
+  });
+}
+
+function shuffleArr(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}}
+const BW=180,BH=48,CG=180,RG=28; const cy=t=>t+BH/2;
+
+// Add players
+addBtn.onclick=()=>{const v=playerName.value.trim(); if(!v) return; S.players.push({name:v}); playerName.value=''; updateCount();};
+playerName.addEventListener('keydown',e=>{if(e.key==='Enter') addBtn.click();});
+bulkBtn.onclick=()=>{bulk.value.split(/[,\r\n]+/).map(s=>s.trim()).filter(Boolean).forEach(n=>S.players.push({name:n})); bulk.value=''; updateCount();};
+clearBtn.onclick=()=>{S.players=[]; updateCount();};
+
+// Actions
+buildBtn.onclick=()=>buildFromPlayers();
+resetBtn.onclick=()=>{ board.innerHTML='<svg id="lines"></svg>'; svg=q('lines'); S.rounds=[]; S.stats.clear(); S.players=[]; S.entries=[]; statsBody.innerHTML=''; updateCount(); };
+printBtn.onclick=()=>window.print();
+
+function buildFromPlayers(){
+  if(S.players.length<2){alert('Add at least 2 entries');return;}
+  S.meta.name = tName.value||'Tournament';
+  S.meta.date = tDate.value||new Date().toISOString().slice(0,10);
+  S.meta.mode = modeSel.value;
+  S.meta.format = formatSel.value;
+  title.textContent = `🏸 ${S.meta.name} (${S.meta.date})`;
+
+  let entries;
+  if(S.meta.mode==='singles'){ entries=S.players.map(p=>p.name); if(shuffle.checked) shuffleArr(entries); }
+  else if(S.meta.mode==='doubles'){ entries=S.players.map(p=>p.name); if(shuffle.checked) shuffleArr(entries); }
+  else{
+    let singles=S.players.map(p=>p.name);
+    if(shuffle.checked) shuffleArr(singles);
+    if(singles.length%2===1) singles.push('BYE');
+    entries=[];
+    for(let i=0;i<singles.length;i+=2) entries.push(`${singles[i]} & ${singles[i+1]}`);
+  }
+
+  entries = padToPowerOfTwo(entries);
   S.stats.clear();
-  S.players=[];
-  S.entries=[];
-  statsBody.innerHTML='';
-  updateCount();
-};
-  printBtn.onclick=()=>window.print();
+  entries.filter(n=>n!=='BYE').forEach(n=>S.stats.set(n,{P:0,W:0,L:0,PF:0,PA:0}));
 
-  function buildFromPlayers(){
-    if(S.players.length<2){alert('Add at least 2 entries');return;}
-    S.meta.name = tName.value||'Tournament';
-    S.meta.date = tDate.value||new Date().toISOString().slice(0,10);
-    S.meta.mode = modeSel.value;
-    S.meta.format = formatSel.value;
-    title.textContent = `🏸 ${S.meta.name} (${S.meta.date})`;
+  S.entries = entries;
+  board.innerHTML='<svg id="lines"></svg>'; svg=q('lines');
+  layout(entries);
+  resizeSVG(); renderStats();
+}
 
-    // Build entries by mode
-    let entries;
-    if(S.meta.mode==='singles'){
-      entries=S.players.map(p=>p.name);
-      if(shuffle.checked) shuffleArr(entries);
-    }else if(S.meta.mode==='doubles'){
-      // Expect teams as "A & B" strings the user added
-      entries=S.players.map(p=>p.name);
-      if(shuffle.checked) shuffleArr(entries);
-    }else{ // auto_doubles
-      let singles=S.players.map(p=>p.name);
-      if(shuffle.checked) shuffleArr(singles);
-      if(singles.length%2===1) singles.push('BYE'); // ensure even for pairing
-      entries=[];
-      for(let i=0;i<singles.length;i+=2) entries.push(`${singles[i]} & ${singles[i+1]}`);
-    }
+function padToPowerOfTwo(players){
+  let n = players.length, p = 1;
+  while (p < n) p <<= 1;
+  if (p === n) return players;
 
-    // Pad to next power-of-two with BYE entries
-    entries = padToPowerOfTwo(entries);
+  const need = p - n;
+  const filled = [...players];
 
-    // Init stats (ignore BYE)
-    S.stats.clear();
-    entries.filter(n=>n!=='BYE').forEach(n=>S.stats.set(n,{P:0,W:0,L:0,PF:0,PA:0}));
-
-    // Clear board & lay out
-    S.entries = entries;
-    board.innerHTML='<svg id="lines"></svg>'; svg=q('lines');
-    layout(entries);
-    resizeSVG(); renderStats();
+  // BYE seeding: assign BYEs so that top seeds get them
+  // Place BYEs evenly spaced in the bracket to avoid BYE vs BYE
+  for (let i = 0; i < need; i++) {
+    // Insert BYE at every other slot near the end
+    filled.splice(filled.length - (i * 2 + 1), 0, 'BYE');
   }
+  return filled;
+}
 
-  function padToPowerOfTwo(list){
-    let n=list.length, p=1; while(p<n) p<<=1;
-    if(p===n) return list;
-    const need=p-n; const filled=[...list];
-    for(let i=0;i<need;i++) filled.push('BYE');
-    return filled;
+
+function layout(entries){
+  S.rounds=[]; const roundsCount=Math.log2(entries.length)|0;
+  let prev=[];
+  for(let i=0;i<entries.length;i++){
+    const left=0, top=i*(BH+RG);
+    prev.push(createBox(entries[i], left, top, false, false));
   }
+  for(let r=0;r<roundsCount;r++){
+    const curr=[]; S.rounds[r]=[]; const isFinal=(r===roundsCount-1);
+    for(let m=0;m<prev.length/2;m++){
+      const A=prev[2*m], B=prev[2*m+1];
+      const yA=cy(parseFloat(A.style.top)), yB=cy(parseFloat(B.style.top)), midY=(yA+yB)/2;
+      const ax=parseFloat(A.style.left)+BW, bx=parseFloat(B.style.left)+BW, tx=(r+1)*(BW+CG);
+      const jx=(ax+tx)/2;
+      const hA=line(ax,yA,jx,yA); const vU=line(jx,yA,jx,midY);
+      const hB=line(bx,yB,jx,yB); const vL=line(jx,midY,jx,yB);
+      const hF=line(jx,midY,tx,midY);
+      const T=createBox('—',tx,midY-BH/2,false,isFinal);
+      curr.push(T);
+      const mo={A,B,T,lines:{hA,vU,hB,vL,hF},saved:false};
 
-  function layout(entries){
-    S.rounds=[];
-    const roundsCount=Math.log2(entries.length)|0;
+      if(A.dataset.name==='BYE' && B.dataset.name!=='BYE'){ forwardWinner(mo,B.dataset.name,0,0,true); }
+      else if(B.dataset.name==='BYE' && A.dataset.name!=='BYE'){ forwardWinner(mo,A.dataset.name,0,0,true); }
+      else if(A.dataset.name==='BYE' && B.dataset.name==='BYE'){ /* skip completely */ }
+      else{ mo.card=createScoreCard(`${A.dataset.name} vs ${B.dataset.name}`,T,mo); }
 
-    // first round boxes
-    let prev=[];
-    for(let i=0;i<entries.length;i++){
-      const left=0, top = i*(BH+RG);
-      prev.push(createBox(entries[i], left, top, false, false));
+      S.rounds[r].push(mo);
     }
+    prev=curr;
+  }
+}
 
-    // rounds
-    for(let r=0;r<roundsCount;r++){
-      const curr=[]; S.rounds[r]=[];
-      const isFinal = (r===roundsCount-1);
-      for(let m=0;m<prev.length/2;m++){
-        const A=prev[2*m], B=prev[2*m+1];
-        const yA=cy(parseFloat(A.style.top)), yB=cy(parseFloat(B.style.top)), midY=(yA+yB)/2;
-        const ax=parseFloat(A.style.left)+BW, bx=parseFloat(B.style.left)+BW, tx=(r+1)*(BW+CG);
-        const jx=(ax+tx)/2;
+function createBox(name,left,top,isBye=false,isChamp=false){
+  const b=el('div','box'+(isChamp?' champ':''),{left:left+'px',top:top+'px',width:BW+'px',height:BH+'px'});
+  const seed=el('div','seed'); seed.textContent=isChamp?'🏆':(name==='BYE'?'—':'');
+  const nm=el('div','name'+(name==='BYE'?' bye':'')); nm.textContent=name;
+  b.dataset.name=name; b.append(seed,nm); 
+  board.appendChild(b); return b;
+}
 
-        // 3 horizontals + 2 verticals (upper & lower) meeting perfectly at midY
-        const hA = line(ax, yA, jx, yA);
-        const vU = line(jx, yA, jx, midY);     // upper vertical to joint
-        const hB = line(bx, yB, jx, yB);
-        const vL = line(jx, midY, jx, yB);     // lower vertical from joint (drawn downward to meet B)
-        const hF = line(jx, midY, tx, midY);   // forward to target
+function line(x1,y1,x2,y2){
+  const L=document.createElementNS('http://www.w3.org/2000/svg','line');
+  L.setAttribute('x1',x1);L.setAttribute('y1',y1);L.setAttribute('x2',x2);L.setAttribute('y2',y2);
+  L.setAttribute('class','edge');svg.appendChild(L);return L;
+}
 
-        const T = createBox('—', tx, midY-BH/2, false, isFinal);
-        curr.push(T);
+function createScoreCard(label,T,mo){
+  const card=el('div','scorecard',{left:(parseFloat(T.style.left)+BW/2+16)+'px', top:T.style.top});
+  const lab=el('span','lab'); lab.textContent=label; lab.title=label; card.appendChild(lab);
 
-        const mo={A,B,T,lines:{hA,vU,hB,vL,hF},saved:false};
-        const hasBYE = (A.dataset.name==='BYE' || B.dataset.name==='BYE');
-        if(hasBYE){
-          const winner = (A.dataset.name==='BYE' && B.dataset.name!=='BYE') ? B.dataset.name
-                       : (B.dataset.name==='BYE' && A.dataset.name!=='BYE') ? A.dataset.name
-                       : 'BYE';
-          forwardWinner(mo, winner, 0, 0, true);
-        }else{
-          mo.card = createScoreCard(`${A.dataset.name} vs ${B.dataset.name}`, T, mo);
-        }
-        S.rounds[r].push(mo);
+  if(S.meta.format==='bo3'){
+    const A1=inp(),B1=inp(),A2=inp(),B2=inp(),A3=inp(),B3=inp();
+    const save=btn('Save'); card.append(A1,B1,A2,B2,A3,B3,save); board.appendChild(card);
+    save.onclick=()=>{
+      const sets=[[A1,B1],[A2,B2],[A3,B3]];
+      let wSets=0,lSets=0,pf=0,pa=0;
+      for(const [ai,bi] of sets){
+        const a=val(ai), b=val(bi);
+        if(a===null&&b===null) continue;
+        if(a===b){alert('Set cannot be tied'); return;}
+        if(a===null||b===null){alert('Fill both scores'); return;}
+        pf+=a; pa+=b; if(a>b) wSets++; else lSets++;
       }
-      prev=curr;
-    }
+      if(wSets<2&&lSets<2){alert('Enter enough sets');return;}
+      const winner=(wSets>=2)?mo.A.dataset.name:mo.B.dataset.name;
+      forwardWinner(mo,winner,pf,pa,false);
+      disable([A1,B1,A2,B2,A3,B3,save]);
+    };
+  } else {
+    const A=inp(),B=inp(),save=btn('Save');
+    card.append(A,B,save); board.appendChild(card);
+    save.onclick=()=>{
+      const a=val(A), b=val(B);
+      if(a===null||b===null||a===b){alert('Enter valid non-tied scores');return;}
+      const winner=(a>b)?mo.A.dataset.name:mo.B.dataset.name;
+      forwardWinner(mo,winner,a,b,false);
+      disable([A,B,save]);
+    };
+  }
+  return card;
+
+  function inp(){const i=el('input'); i.type='number'; i.min='0'; i.step='1'; i.inputMode='numeric'; return i;}
+  function btn(t){const b=el('button','btn'); b.textContent=t; return b;}
+  function val(i){const v=i.value.trim(); if(v==='') return null; const n=parseInt(v,10); return Number.isNaN(n)?null:n;}
+  function disable(arr){arr.forEach(x=>x.disabled=true); mo.saved=true;}
+}
+
+function forwardWinner(mo,winner,sa,sb,isBye,restoring=false){
+  const loser = winner===mo.A.dataset.name ? mo.B.dataset.name : mo.A.dataset.name;
+
+  // forward name
+  mo.T.dataset.name=winner; mo.T.querySelector('.name').textContent=winner;
+
+  // colour path
+  const {hA,vU,hB,vL,hF}=mo.lines;
+  if(winner===mo.A.dataset.name){
+    hA.classList.add('win'); vU.classList.add('win');
+    hB.classList.add('loss'); vL.classList.add('loss');
+    hF.classList.add('win');
+    mo.A.classList.add('win'); if(mo.B.dataset.name!=='BYE') mo.B.classList.add('loss');
+  }else{
+    hB.classList.add('win'); vL.classList.add('win');
+    hA.classList.add('loss'); vU.classList.add('loss');
+    hF.classList.add('win');
+    mo.B.classList.add('win'); if(mo.A.dataset.name!=='BYE') mo.A.classList.add('loss');
   }
 
-  function createBox(name,left,top,isBye=false,isChamp=false){
-    const b=el('div','box'+(isChamp?' champ':''),{left:left+'px',top:top+'px',width:BW+'px',height:BH+'px'});
-    const seed=el('div','seed'); seed.textContent = isChamp ? '🏆' : (name==='BYE' ? '—' : '');
-    const nm=el('div','name'+(name==='BYE'?' bye':'')); nm.textContent=name;
-    b.dataset.name=name; b.append(seed,nm); board.appendChild(b); return b;
-  }
-
-  function line(x1,y1,x2,y2){const L=document.createElementNS('http://www.w3.org/2000/svg','line');
-    L.setAttribute('x1',x1);L.setAttribute('y1',y1);L.setAttribute('x2',x2);L.setAttribute('y2',y2);L.setAttribute('class','edge');svg.appendChild(L);return L;}
-
-  function createScoreCard(label,T,mo){
-    const card=el('div','scorecard',{left:(parseFloat(T.style.left)+BW/2+16)+'px', top:T.style.top});
-    const lab=el('span','lab'); lab.textContent=label; lab.title=label; card.appendChild(lab);
-
-    if(S.meta.format==='bo3'){
-      // Best of 3: A1 B1 | A2 B2 | A3 B3
-      const A1=inp(),B1=inp(),A2=inp(),B2=inp(),A3=inp(),B3=inp();
-      const save=btn('Save');
-      card.append(A1,B1,A2,B2,A3,B3,save); board.appendChild(card);
-      save.onclick=()=>{
-        const sets=[[A1,B1],[A2,B2],[A3,B3]];
-        let wSets=0,lSets=0, pf=0, pa=0;
-        for(const [ai,bi] of sets){
-          const a=val(ai), b=val(bi);
-          if(a===null && b===null) continue;
-          if(a===b){alert('Set cannot be tied'); return;}
-          if(a===null || b===null){alert('Fill both scores for each played set'); return;}
-          pf+=a; pa+=b; if(a>b) wSets++; else lSets++;
-        }
-        if(wSets<2 && lSets<2){alert('Enter enough sets (best of 3)'); return;}
-        const winner = (wSets>=2) ? mo.A.dataset.name : mo.B.dataset.name;
-        const sa = pf, sb = pa; // aggregate for stats (sum of points)
-        forwardWinner(mo, winner, sa, sb, false);
-        disable([A1,B1,A2,B2,A3,B3,save]);
-      };
-    }else{
-      // Single game: A B
-      const A=inp(),B=inp(),save=btn('Save');
-      card.append(A,B,save); board.appendChild(card);
-      save.onclick=()=>{
-        const a=val(A), b=val(B);
-        if(a===null||b===null||a===b){alert('Enter valid non-tied scores');return;}
-        const winner = (a>b)? mo.A.dataset.name : mo.B.dataset.name;
-        forwardWinner(mo, winner, a, b, false);
-        disable([A,B,save]);
-      };
-    }
-    return card;
-
-    function inp(){const i=el('input'); i.type='number'; i.min='0'; i.step='1'; i.inputMode='numeric'; return i;}
-    function btn(t){const b=el('button','btn'); b.textContent=t; return b;}
-    function val(i){const v=i.value.trim(); if(v==='') return null; const n=parseInt(v,10); return Number.isNaN(n)?null:n;}
-    function disable(arr){arr.forEach(x=>x.disabled=true); mo.saved=true;}
-  }
-
-  function forwardWinner(mo, winner, sa, sb, isBye){
-    const loser = winner===mo.A.dataset.name ? mo.B.dataset.name : mo.A.dataset.name;
-    // forward name
-    mo.T.dataset.name = winner;
-    mo.T.querySelector('.name').textContent = winner;
-
-    // color lines & boxes: winner path green, loser red; shared verticals green
-    const {hA,vU,hB,vL,hF} = mo.lines;
-    if(winner===mo.A.dataset.name){
-      hA.classList.add('win'); vU.classList.add('win');
-      hB.classList.add('loss'); vL.classList.add('loss');
-      hF.classList.add('win');
-      mo.A.classList.add('win'); if(mo.B.dataset.name!=='BYE') mo.B.classList.add('loss');
-    }else{
-      hB.classList.add('win'); vL.classList.add('win');
-      hA.classList.add('loss'); vU.classList.add('loss');
-      hF.classList.add('win');
-      mo.B.classList.add('win'); if(mo.A.dataset.name!=='BYE') mo.A.classList.add('loss');
-    }
-
-    // Stats (ignore BYE)
+  // stats
+  if(!restoring){
     if(!isBye && winner!=='BYE' && loser!=='BYE'){
       const W=S.stats.get(winner)||{P:0,W:0,L:0,PF:0,PA:0};
       const L=S.stats.get(loser)||{P:0,W:0,L:0,PF:0,PA:0};
       W.P++;W.W++;W.PF+=Math.max(sa,sb);W.PA+=Math.min(sa,sb);
       L.P++;L.L++;L.PF+=Math.min(sa,sb);L.PA+=Math.max(sa,sb);
-      S.stats.set(winner,W); S.stats.set(loser,L); renderStats();
+      S.stats.set(winner,W); S.stats.set(loser,L);
+    } else if(isBye && winner!=='BYE'){
+      const W=S.stats.get(winner)||{P:0,W:0,L:0,PF:0,PA:0};
+      W.P++;W.W++; S.stats.set(winner,W);
     }
+    renderStats();
+  }
 
-    // Update downstream labels so they show names instead of "— vs —"
-    for(const rnd of S.rounds){
-      for(const node of rnd){
-        if(node.card && (node.A===mo.T || node.B===mo.T)){
-          const text = `${node.A.dataset.name} vs ${node.B.dataset.name}`;
-          node.card.querySelector('.lab').textContent = text;
-          node.card.querySelector('.lab').title = text;
-        }
+  // update downstream labels
+  for(const rnd of S.rounds){
+    for(const node of rnd){
+      if(node.card&&(node.A===mo.T||node.B===mo.T)){
+        const text=`${node.A.dataset.name} vs ${node.B.dataset.name}`;
+        node.card.querySelector('.lab').textContent=text;
+        node.card.querySelector('.lab').title=text;
       }
     }
+  }
 
-    // Champion confetti
-    // If mo.T is in the final column, the next round does not create a new box.
-    // Detect champion: no later node uses mo.T as A or B.
-    let usedLater=false;
-    for(const rnd of S.rounds){
-      for(const node of rnd){ if(node!==mo && (node.A===mo.T || node.B===mo.T)){usedLater=true;break;} }
-      if(usedLater) break;
+  // champion?
+  let usedLater=false;
+  for(const rnd of S.rounds){
+    for(const node of rnd){
+      if(node!==mo&&(node.A===mo.T||node.B===mo.T)){usedLater=true;break;}
     }
-    if(!usedLater){
-      sprinkleConfetti(mo.T);
-      mo.T.classList.add('champ');
-    }
+    if(usedLater) break;
   }
+  if(!usedLater){sprinkleConfetti(mo.T); mo.T.classList.add('champ');}
+}
 
-  function renderStats(){
-    statsBody.innerHTML='';
-    const sorted = [...S.stats.entries()]
-      .sort((a,b)=> (b[1].W - a[1].W) || ((b[1].PF-b[1].PA) - (a[1].PF-a[1].PA)) || (b[1].PF - a[1].PF));
-    sorted.forEach(([name,s],i)=>{
-      const tr=document.createElement('tr');
-      tr.innerHTML=`<td>${i+1}</td><td>${esc(name)}</td><td>${s.P}</td><td class="win">${s.W}</td><td class="loss">${s.L}</td><td>${s.PF}</td><td>${s.PA}</td><td>${s.PF-s.PA}</td>`;
-      statsBody.appendChild(tr);
-    });
-  }
-
-  function resizeSVG(){
-    const boxes=[...board.querySelectorAll('.box')];
-    if(!boxes.length){svg.setAttribute('width',1200);svg.setAttribute('height',800);return;}
-    let maxX=0,maxY=0;
-    boxes.forEach(b=>{
-      const x=parseFloat(b.style.left)+BW, y=parseFloat(b.style.top)+BH;
-      if(x>maxX) maxX=x; if(y>maxY) maxY=y;
-    });
-    svg.setAttribute('width', Math.max(800, maxX+80));
-    svg.setAttribute('height', Math.max(500, maxY+80));
-  }
-
-  function sprinkleConfetti(box){
-    const bx=parseFloat(box.style.left)+BW/2, by=parseFloat(box.style.top)+BH/2;
-    for(let i=0;i<60;i++){
-      const c=document.createElement('div'); c.className='confetti';
-      c.style.left=bx+'px'; c.style.top=by+'px';
-      c.style.background=`hsl(${Math.random()*360},100%,50%)`;
-      c.style.transform=`translate(${(Math.random()-0.5)*260}px,0)`;
-      c.style.animationDuration=(1+Math.random()*2.2)+'s';
-      board.appendChild(c);
-      setTimeout(()=>c.remove(),2500);
-    }
-  }
-
-  // Export / Import (Import rebuilds; iPad-friendly)
- exportBtn.onclick=()=>{
-  const rounds = S.rounds.map(rnd=>rnd.map(mo=>({
-    A: mo.A?.dataset.name,
-    B: mo.B?.dataset.name,
-    T: mo.T?.dataset.name,
-    winner: mo.T?.dataset.name,
-    saved: mo.saved || false
-  })));
-  const data=JSON.stringify({
-    players:S.players,
-    entries:S.entries,
-    meta:S.meta,
-    stats:[...S.stats],
-    rounds:rounds
-  },null,2);
-  const blob=new Blob([data],{type:'application/json'});
-  const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
-  a.download=`${S.meta.name||'tournament'}.json`; a.click();
-};
-
-  importBtn.onclick=()=>importFile.click();
-  importFile.onchange=e=>{
-    const f=e.target.files[0]; if(!f) return;
-    const r=new FileReader();
-    r.onload=ev=>{
-      try{
-        const o=JSON.parse(ev.target.result);
-        S.players = Array.isArray(o.players) ? o.players : [];
-        S.entries = Array.isArray(o.entries) ? o.entries : [];
-        S.meta    = Object.assign({mode:'singles',format:'single'}, o.meta||{});
-        S.stats   = new Map(o.stats||[]);
-        // restore UI & rebuild
-        tName.value = S.meta.name || '';
-        tDate.value = S.meta.date || '';
-        modeSel.value = S.meta.mode || 'singles';
-        formatSel.value = S.meta.format || 'single';
-        updateCount(); renderStats();
-        // Prefer saved entries for building if present
-      if (S.entries.length >= 2) {
-  board.innerHTML = '<svg id="lines"></svg>';
-  svg = q('lines');
-  // If no stats were stored, initialize
-  if (!S.stats || S.stats.size === 0) {
-    S.stats = new Map();
-    S.entries.filter(n => n !== 'BYE').forEach(n =>
-      S.stats.set(n, { P: 0, W: 0, L: 0, PF: 0, PA: 0 })
-    );
-  }
-  layout(S.entries);
-  if(o.rounds){
-  S.rounds.forEach((rnd,i)=>{
-    rnd.forEach((mo,j)=>{
-      const saved=o.rounds[i]?.[j];
-      if(saved?.winner && saved.winner!=='BYE'){
-        forwardWinner(mo, saved.winner, 0, 0, false);
-        mo.saved=true;
-      }
-    });
+function renderStats(){
+  statsBody.innerHTML='';
+  const sorted=[...S.stats.entries()]
+    .sort((a,b)=>(b[1].W-a[1].W)||((b[1].PF-b[1].PA)-(a[1].PF-a[1].PA))||(b[1].PF-a[1].PF));
+  sorted.forEach(([name,s],i)=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td>${i+1}</td><td>${esc(name)}</td><td>${s.P}</td><td class="win">${s.W}</td><td class="loss">${s.L}</td><td>${s.PF}</td><td>${s.PA}</td><td>${s.PF-s.PA}</td>`;
+    statsBody.appendChild(tr);
   });
 }
 
-  resizeSVG();
-  renderStats();
-  
-  
+function resizeSVG(){
+  const boxes=[...board.querySelectorAll('.box')];
+  if(!boxes.length){svg.setAttribute('width',1200);svg.setAttribute('height',800);return;}
+  let maxX=0,maxY=0;
+  boxes.forEach(b=>{
+    const x=parseFloat(b.style.left)+BW, y=parseFloat(b.style.top)+BH;
+    if(x>maxX) maxX=x; if(y>maxY) maxY=y;
+  });
+  svg.setAttribute('width',Math.max(800,maxX+80));
+  svg.setAttribute('height',Math.max(600,maxY+80));
 }
 
+function sprinkleConfetti(box){
+  const rect=box.getBoundingClientRect(), off=board.getBoundingClientRect();
+  const x=rect.left-off.left+rect.width/2, y=rect.top-off.top+rect.height/2;
+  for(let i=0;i<25;i++){
+    const c=el('div','confetti',{
+      left:(x+(Math.random()*40-20))+'px',
+      top:y+'px',
+      background:`hsl(${Math.random()*360},100%,50%)`,
+      animationDuration:(1+Math.random()*2)+'s'
+    });
+    board.appendChild(c);
+    setTimeout(()=>c.remove(),3000);
+  }
+}
 
-        else if(S.players.length>=2){
-          buildFromPlayers();
-        }else{
-          alert('Imported file has no players/entries');
+// Export / Import
+exportBtn.onclick = () => {
+  const rounds = S.rounds.map(rnd =>
+    rnd.map(mo => ({
+      A: mo.A?.dataset.name,
+      B: mo.B?.dataset.name,
+      T: mo.T?.dataset.name,
+      winner: mo.T?.dataset.name,
+      saved: mo.saved || false,
+      scores: mo.card
+        ? [...mo.card.querySelectorAll("input")].map(i => i.value)
+        : null
+    }))
+  );
+
+  const data = JSON.stringify({
+    players: S.players,
+    entries: S.entries,
+    meta: S.meta,
+    stats: [...S.stats],   // save as array of [name, obj]
+    rounds: rounds
+  }, null, 2);
+
+  const blob = new Blob([data], { type: "application/json" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `${S.meta.name || "tournament"}.json`;
+  a.click();
+};
+localStorage.setItem("tournamentData", data);
+
+
+importBtn.onclick=()=>importFile.click();
+importFile.onchange = e => {
+  const f = e.target.files[0];
+  if (!f) return;
+  const r = new FileReader();
+  r.onload = ev => {
+    try {
+      const o = JSON.parse(ev.target.result);
+
+      S.players = Array.isArray(o.players) ? o.players : [];
+      S.entries = Array.isArray(o.entries) ? o.entries : [];
+      S.meta = Object.assign({ mode: "singles", format: "single" }, o.meta || {});
+      S.stats = new Map(o.stats || []);
+
+      // restore UI
+      tName.value = S.meta.name || "";
+      tDate.value = S.meta.date || "";
+      modeSel.value = S.meta.mode || "singles";
+      formatSel.value = S.meta.format || "single";
+      updateCount();
+      renderStats();
+
+      // rebuild layout
+      if (S.entries.length >= 2) {
+        board.innerHTML = '<svg id="lines"></svg>';
+        svg = q("lines");
+        layout(S.entries);
+
+        if (o.rounds) {
+          S.rounds.forEach((rnd, i) => {
+            rnd.forEach((mo, j) => {
+              const saved = o.rounds[i]?.[j];
+              if (saved) {
+                if (saved.winner && saved.winner !== "BYE") {
+                  forwardWinner(mo, saved.winner, 0, 0, false, true);
+                  mo.saved = saved.saved;
+                }
+                // restore scores if available
+                if (saved.scores && mo.card) {
+                  const inputs = mo.card.querySelectorAll("input");
+                  saved.scores.forEach((val, idx) => {
+                    if (inputs[idx]) inputs[idx].value = val;
+                  });
+                  if (saved.saved) {
+                    inputs.forEach(inp => inp.disabled = true);
+                    const btn = mo.card.querySelector("button");
+                    if (btn) btn.disabled = true;
+                  }
+                }
+              }
+            });
+          });
         }
-      }catch(err){alert('Bad file');}
-    };
-    r.readAsText(f);
+        resizeSVG();
+        renderStats();
+      } else {
+        alert("Imported file has no players/entries");
+      }
+    } catch (err) {
+      alert("Bad file");
+    }
   };
+  r.readAsText(f);
+};
 
-  // Ensure SVG covers everything before printing (avoids missing lines on paper)
-  window.onbeforeprint = resizeSVG;
+
 })();
+
+  
 </script>
 </body>
 </html>

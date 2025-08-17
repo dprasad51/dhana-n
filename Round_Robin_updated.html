@@ -230,6 +230,8 @@
   a.download=`${S.meta.name.replace(/\s+/g,'_')}.json`;  
   a.click();
 };
+localStorage.setItem("tournamentData", data);
+
 
   importBtn.onclick=()=>importFile.click();
   importFile.onchange=e=>{

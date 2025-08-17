@@ -46,6 +46,19 @@
   td.win{color:var(--win)} td.loss{color:var(--loss)}
 
   .champ{border:2px solid gold; color:gold}
+  @media print {
+  header { display:none !important; }
+  body { background:#fff; color:#000; }
+  .board, aside { border:none !important; }
+  .board { background:#fff !important; }
+  table.matches th, table.matches td,
+  table.stats th, table.stats td {
+    border:1px solid #000 !important;
+    color:#000 !important;
+  }
+  .champ { border:2px solid gold !important; }
+}
+
 </style>
 </head>
 <body>
@@ -69,6 +82,8 @@
     <button class="btn" id="exportBtn">Export</button>
     <input id="importFile" type="file" accept="application/json" style="display:none">
     <button class="btn" id="importBtn">Import</button>
+    <button class="btn" id="printBtn">Print</button>
+
     <span class="legend" id="count">0 players</span>
     <input id="playerName" placeholder="Add player/team">
     <button class="btn" id="addBtn">＋ Add</button>
@@ -100,6 +115,8 @@
   const addBtn=q('addBtn'), bulkBtn=q('bulkBtn'), clearBtn=q('clearBtn');
   const buildBtn=q('buildBtn'), resetBtn=q('resetBtn');
   const exportBtn=q('exportBtn'), importBtn=q('importBtn'), importFile=q('importFile');
+  const printBtn = document.getElementById('printBtn');
+  printBtn.onclick = ()=>window.print();
   const playerName=q('playerName'), bulk=q('bulk'), count=q('count');
   const modeSel=q('mode'), formatSel=q('format'), tName=q('tName'), tDate=q('tDate'), shuffle=q('shuffle'), title=q('title');
 

@@ -19,11 +19,27 @@
   th,td { padding:8px; border-bottom:1px solid #2a2f40; text-align:left; }
   tr:hover { background:#1c2335; cursor:pointer; }
 
-  /* Detail panel */
-  #detailPanel { position:fixed; top:0; right:0; width:320px; height:100%; background:#131826; border-left:2px solid #2a82ff; padding:16px; overflow:auto; display:none; }
-  #detailPanel h2 { margin-top:0; }
-  #detailPanel img { width:100%; border-radius:12px; margin-bottom:12px; }
-  #closeDetail { background:#ef4444; margin-top:10px; }
+  /* Profile Popup */
+  #profilePopup {
+    position:fixed; inset:0; display:none; align-items:center; justify-content:center;
+    background:rgba(0,0,0,0.65); z-index:1000;
+  }
+  .profile-card {
+    background:#131826; border-radius:16px; padding:20px; width:360px;
+    box-shadow:0 6px 20px rgba(0,0,0,0.5); text-align:center;
+    animation: pop 0.3s ease-out;
+  }
+  .profile-card img {
+    width:140px; height:140px; border-radius:50%; object-fit:cover;
+    border:4px solid #2a82ff; margin-bottom:10px;
+  }
+  .profile-card h2 { margin:10px 0 4px; }
+  .profile-card small { color:#aaa; }
+  .stats { margin-top:10px; text-align:left; }
+  .stats table { width:100%; }
+  .stats th, .stats td { padding:4px; font-size:13px; }
+  #closePopup { margin-top:14px; background:#ef4444; width:100%; }
+  @keyframes pop { from{ transform:scale(0.8); opacity:0; } to{ transform:scale(1); opacity:1; } }
 </style>
 </head>
 <body>
@@ -57,17 +73,32 @@
   </table>
 </main>
 
-<!-- Detail Panel -->
-<div id="detailPanel">
-  <button class="btn" id="closeDetail">Close ✖</button>
-  <div id="detailContent"></div>
+<!-- Profile Popup -->
+<div id="profilePopup">
+  <div class="profile-card">
+    <img id="profilePhoto" src="">
+    <h2 id="profileName"></h2>
+    <small id="profileMeta"></small>
+    <p id="profileBio"></p>
+    <div class="stats">
+      <h3>Stats</h3>
+      <table>
+        <tr><th>Matches</th><td id="profileMatches"></td></tr>
+        <tr><th>Wins</th><td id="profileWins"></td></tr>
+        <tr><th>Losses</th><td id="profileLosses"></td></tr>
+        <tr><th>Points For</th><td id="profilePF"></td></tr>
+        <tr><th>Points Against</th><td id="profilePA"></td></tr>
+      </table>
+    </div>
+    <div id="profileVideo"></div>
+    <button class="btn" id="closePopup">Close ✖</button>
+  </div>
 </div>
 
 <script>
 const S={players:[]};
 const tableBody=document.querySelector("#playerTable tbody");
-const detailPanel=document.getElementById("detailPanel");
-const detailContent=document.getElementById("detailContent");
+const popup=document.getElementById("profilePopup");
 
 function renderPlayers(filter=""){
   tableBody.innerHTML="";
@@ -77,7 +108,7 @@ function renderPlayers(filter=""){
       const tr=document.createElement("tr");
       tr.innerHTML=`
         <td>${p.id||"-"}</td>
-        <td>${p.name}</td>
+        <td style="color:#49a8ff; text-decoration:underline">${p.name}</td>
         <td>${p.country||""}</td>
         <td>${p.age||""}</td>
         <td>${p.stats?.matchesPlayed||0}</td>
@@ -86,32 +117,27 @@ function renderPlayers(filter=""){
         <td>${p.stats?.pointsFor||0}</td>
         <td>${p.stats?.pointsAgainst||0}</td>
       `;
-      tr.onclick=()=>showDetail(p);
+      tr.onclick=()=>showProfile(p);
       tableBody.appendChild(tr);
     });
 }
 
-function showDetail(p){
-  detailContent.innerHTML=`
-    ${p.photo ? `<img src="${p.photo}">` : ""}
-    <h2>${p.name}</h2>
-    <p><b>ID:</b> ${p.id||"-"}</p>
-    <p><b>Aadhaar:</b> ${p.aadhar||"-"}</p>
-    <p><b>Age:</b> ${p.age||"-"} | <b>Country:</b> ${p.country||"-"}</p>
-    <p>${p.bio||""}</p>
-    <h3>Stats</h3>
-    <ul>
-      <li>Matches: ${p.stats?.matchesPlayed||0}</li>
-      <li>Wins: ${p.stats?.wins||0}</li>
-      <li>Losses: ${p.stats?.losses||0}</li>
-      <li>Points For: ${p.stats?.pointsFor||0}</li>
-      <li>Points Against: ${p.stats?.pointsAgainst||0}</li>
-    </ul>
-    ${p.videos && p.videos.length ? `<p><a href="${p.videos[0]}" target="_blank">🎥 Watch Video</a></p>`:""}
-  `;
-  detailPanel.style.display="block";
+function showProfile(p){
+  document.getElementById("profilePhoto").src = p.photo || "";
+  document.getElementById("profileName").textContent = p.name;
+  document.getElementById("profileMeta").textContent =
+    `ID: ${p.id||"-"} | Aadhaar: ${p.aadhar||"-"} | Age: ${p.age||"-"} | ${p.country||"-"}`;
+  document.getElementById("profileBio").textContent = p.bio || "";
+  document.getElementById("profileMatches").textContent = p.stats?.matchesPlayed||0;
+  document.getElementById("profileWins").textContent = p.stats?.wins||0;
+  document.getElementById("profileLosses").textContent = p.stats?.losses||0;
+  document.getElementById("profilePF").textContent = p.stats?.pointsFor||0;
+  document.getElementById("profilePA").textContent = p.stats?.pointsAgainst||0;
+  document.getElementById("profileVideo").innerHTML =
+    p.videos && p.videos.length ? `<p><a href="${p.videos[0]}" target="_blank">🎥 Watch Video</a></p>` : "";
+  popup.style.display="flex";
 }
-document.getElementById("closeDetail").onclick=()=>detailPanel.style.display="none";
+document.getElementById("closePopup").onclick=()=>popup.style.display="none";
 
 // Add Player
 document.getElementById("addBtn").onclick=()=>{

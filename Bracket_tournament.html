@@ -543,7 +543,7 @@ importFile.onchange = e => {
               const saved = o.rounds[i]?.[j];
               if (saved) {
                 if (saved.winner && saved.winner !== "BYE") {
-                  forwardWinner(mo, saved.winner, 0, 0, false, true);
+                  forwardWinner(mo, saved.winner, 0, 0, true, true);
                   mo.saved = saved.saved;
                 }
                 // restore scores if available

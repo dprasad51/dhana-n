@@ -152,7 +152,7 @@
 (function(){
   // ---------- State ----------
   const KEY='attendance_v1';
-  let S = load() || { players:[], records:{} }; // records: {"YYYY-MM-DD": { "Name":"P|A|L", ...}}
+  let S = load() || { players:[], records:{} }; // records: {"YYYY-MM-DD": { "Name":"P|A|H" }}
   const q=id=>document.getElementById(id);
 
   // ---------- UI refs ----------
@@ -171,6 +171,9 @@
   function ensureDay(d){ if(!S.records[d]) S.records[d] = {}; }
   function fmtMonthYYYYMM(d){ return d.slice(0,7); }
   function daysInMonth(yyyy,mm){ return new Date(yyyy, mm, 0).getDate(); } // mm: 1..12
+  function labelFor(s){ return s==='P'?'Present':(s==='A'?'Absent':(s==='H'?'Holiday':'—')); }
+  function cssId(s){ return s.replace(/\s+/g,'_').replace(/[^\w-]/g,''); }
+  function escapeHtml(s){ return String(s).replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m])); }
 
   // ---------- Players ----------
   function addPlayer(name){
@@ -189,8 +192,25 @@
   function delPlayer(name){
     if(!confirm(`Delete ${name}?`)) return;
     S.players = S.players.filter(n=>n!==name);
-    // also remove from all days
     Object.keys(S.records).forEach(d=>{ if(S.records[d] && S.records[d][name]) delete S.records[d][name]; });
+    save(); renderToday(); renderMonth(); updateSummary();
+  }
+
+  // Rename player everywhere (players array + all record keys)
+  function renamePlayer(oldName, newName){
+    if(!newName || oldName===newName) return;
+    if(S.players.includes(newName)){ alert('A player with that name already exists'); return; }
+    const idx = S.players.indexOf(oldName);
+    if(idx === -1) return;
+    S.players[idx] = newName;
+    // migrate attendance keys
+    Object.keys(S.records).forEach(d=>{
+      const rec = S.records[d] || {};
+      if(rec[oldName]){
+        rec[newName] = rec[oldName];
+        delete rec[oldName];
+      }
+    });
     save(); renderToday(); renderMonth(); updateSummary();
   }
 
@@ -209,31 +229,57 @@
     todayList.innerHTML = '';
     S.players.forEach(name=> todayList.appendChild(buildTodayRow(name, d)));
   }
-  
+
   function buildTodayRow(name, d){
     const row=document.createElement('div'); row.className='today-row'; row.id='row-'+cssId(name);
     const st = S.records[d]?.[name] || '';
-    row.innerHTML = `
-  <div style="display:flex;align-items:center;gap:8px;">
-    <span class="status-dot ${st?('dot-'+st):''}"></span>
-    <strong>${escapeHtml(name)}</strong>
-    <span class="status-badge ${st}">${st ? labelFor(st) : '—'}</span>
-  </div>
-  <button class="good">Present</button>
-  <button class="bad">Absent</button>
-  <button class="warn">Holiday</button>
-  <button class="ghost">Delete</button>
-  <button class="ghost">History</button>
-`;
+    const sno = S.players.indexOf(name)+1;
 
-    const [presentBtn, absentBtn, holidayBtn, delBtn, histBtn] = row.querySelectorAll('button');
-    presentBtn.onclick=()=>mark(name,'P',d);
-    absentBtn.onclick =()=>mark(name,'A',d);
-    holidayBtn.onclick=()=>mark(name,'H',d);
-    delBtn.onclick    =()=>delPlayer(name);
-    histBtn.onclick   =()=>showHistory(name);
+    row.innerHTML = `
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span class="status-dot ${st?('dot-'+st):''}"></span>
+        <strong class="player-name">${sno}. ${escapeHtml(name)}</strong>
+        <span class="status-badge ${st}">${st ? labelFor(st) : '—'}</span>
+      </div>
+      <button class="good present-btn">Present</button>
+      <button class="bad absent-btn">Absent</button>
+      <button class="warn holiday-btn">Holiday</button>
+      <button class="ghost edit-btn">Edit</button>
+      <button class="ghost delete-btn">Delete</button>
+      <button class="ghost history-btn">History</button>
+    `;
+
+    // Button handlers (select by class, not by index)
+    row.querySelector('.present-btn').onclick = ()=>mark(name,'P',d);
+    row.querySelector('.absent-btn').onclick  = ()=>mark(name,'A',d);
+    row.querySelector('.holiday-btn').onclick = ()=>mark(name,'H',d);
+    row.querySelector('.delete-btn').onclick  = ()=>delPlayer(name);
+    row.querySelector('.history-btn').onclick = ()=>showHistory(name);
+
+    // Edit name
+    row.querySelector('.edit-btn').onclick = () => {
+      const strong = row.querySelector('.player-name');
+      const currentName = name;
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.value = currentName;
+      input.style.width = '160px';
+      strong.replaceWith(input);
+      input.focus();
+      input.onkeydown = (e) => {
+        if (e.key === 'Enter') {
+          const newName = input.value.trim();
+          if(newName) renamePlayer(currentName, newName);
+        } else if (e.key === 'Escape') {
+          renderToday(); // cancel
+        }
+      };
+      input.onblur = ()=>renderToday();
+    };
+
     return row;
   }
+
   function renderTodayRow(name){
     const d = ymd(datePick.value);
     const row = q('row-'+cssId(name));
@@ -244,18 +290,23 @@
     const badge = row.querySelector('.status-badge');
     badge.className = 'status-badge '+st;
     badge.textContent = st ? labelFor(st) : '—';
+    // Update S.No. + name display (in case list order or rename changed)
+    const strongHolder = row.querySelector('.player-name');
+    if (strongHolder){
+      const sno = S.players.indexOf(name)+1;
+      strongHolder.textContent = `${sno}. ${name}`;
+    }
   }
 
   // ---------- Render: Monthly Report ----------
   function renderMonth(){
-    // Determine month/year
     let ym = monthPick.value;
     if(!ym){
       ym = fmtMonthYYYYMM(today());
       monthPick.value = ym;
     }
     const [Y, M] = ym.split('-').map(n=>parseInt(n,10));
-    const days = daysInMonth(Y, M); // 1..days
+    const days = daysInMonth(Y, M);
 
     // Head
     let h = '<tr><th>Player</th>';
@@ -267,7 +318,7 @@
     monthBody.innerHTML='';
     S.players.forEach(name=>{
       let row = document.createElement('tr');
-      let cells = `<th>${escapeHtml(name)}</th>`;
+      let cells = `<th>${S.players.indexOf(name)+1}. ${escapeHtml(name)}</th>`;
       let cP=0,cA=0,cH=0;
       for(let d=1; d<=days; d++){
         const date = `${Y}-${String(M).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
@@ -282,7 +333,7 @@
       monthBody.appendChild(row);
     });
 
-    // Footer: column totals
+    // Footer totals
     let foot = document.createElement('tr');
     let footCells = `<td><strong>Totals</strong></td>`;
     let colP=Array(days).fill(0), colA=Array(days).fill(0), colH=Array(days).fill(0);
@@ -294,7 +345,6 @@
       });
       footCells += `<td><span class="bP">${colP[d-1]}</span>/<span class="bA">${colA[d-1]}</span>/<span class="bH">${colH[d-1]}</span></td>`;
     }
-    // overall totals (month)
     const tP = colP.reduce((a,b)=>a+b,0), tA = colA.reduce((a,b)=>a+b,0), tH = colH.reduce((a,b)=>a+b,0);
     const tTotal = tP + tA + tH;
     const tPct = tTotal ? Math.round(tP / tTotal * 100) : 0;
@@ -303,16 +353,13 @@
     monthFoot.innerHTML = '';
     monthFoot.appendChild(foot);
 
-    // Update side summary for the selected month
     updateSummary();
   }
 
-  // ---------- Summary (for selected month) ----------
+  // ---------- Summary ----------
   function updateSummary(){
     sumPlayers.textContent = S.players.length;
     sumDays.textContent = Object.keys(S.records).length;
-
-    // month filter
     const ym = monthPick.value || fmtMonthYYYYMM(today());
     let P=0,A=0,H=0, total=0;
     Object.entries(S.records).forEach(([d, rec])=>{
@@ -329,43 +376,24 @@
     sumPct.textContent = (total? Math.round(P/total*100):0) + '%';
   }
 
+  // Mark all Holiday
   document.getElementById("markAllHoliday").onclick = () => {
-  const d = ymd(datePick.value || today());
-  ensureDay(d);
-  S.players.forEach(name => {
-    S.records[d][name] = 'H';
-  });
-  save();
-  renderToday();
-  renderMonth();
-  updateSummary();
-  alert("All players marked Holiday for today");
-};
+    const d = ymd(datePick.value || today());
+    ensureDay(d);
+    S.players.forEach(name => { S.records[d][name] = 'H'; });
+    save(); renderToday(); renderMonth(); updateSummary();
+    alert("All players marked Holiday for today");
+  };
 
-
-  // ---------- Helpers ----------
-  function labelFor(s){ return s==='P'?'Present':(s==='A'?'Absent':(s==='H'?'Holiday':'—')); }
-  function cssId(s){ return s.replace(/\s+/g,'_').replace(/[^\w-]/g,''); }
-  function escapeHtml(s){ return String(s).replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m])); }
-
-  // ---------- Events ----------
-  addBtn.onclick=()=>{ const v=playerName.value.trim(); if(!v) return; addPlayer(v); playerName.value=''; };
-  playerName.addEventListener('keydown',e=>{ if(e.key==='Enter') addBtn.click(); });
-
-  bulkBtn.onclick=()=>{ const t=bulk.value.trim(); if(!t) return; addBulk(t); bulk.value=''; };
-
+  // ---------- Import/Export/Clear ----------
   exportBtn.onclick=()=>{
-  const ym = monthPick.value || fmtMonthYYYYMM(today());
-  const [Y,M] = ym.split("-");
-  const monthNames=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-  const fileName = `Attendance_${monthNames[parseInt(M)-1]}_${Y}.json`;
-
-  const blob=new Blob([JSON.stringify(S,null,2)],{type:'application/json'});
-  const a=document.createElement('a'); 
-  a.href=URL.createObjectURL(blob); 
-  a.download=fileName; 
-  a.click();
-};
+    const ym = monthPick.value || fmtMonthYYYYMM(today());
+    const [Y,M] = ym.split("-");
+    const monthNames=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+    const fileName = `Attendance_${monthNames[parseInt(M)-1]}_${Y}.json`;
+    const blob=new Blob([JSON.stringify(S,null,2)],{type:'application/json'});
+    const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=fileName; a.click();
+  };
 
   importBtn.onclick=()=>importFile.click();
   importFile.onchange=e=>{
@@ -374,10 +402,9 @@
     r.onload=ev=>{
       try{
         const obj=JSON.parse(ev.target.result);
-
-
-        
-        S=obj; save(); renderToday(); renderMonth(); updateSummary();
+        // minimal validation
+        S = { players: Array.isArray(obj.players)?obj.players:[], records: obj.records||{} };
+        save(); renderToday(); renderMonth(); updateSummary();
       }catch(err){ alert('Import failed: '+ err.message); }
     };
     r.readAsText(f);
@@ -388,6 +415,10 @@
     S={players:[], records:{}}; save(); renderToday(); renderMonth(); updateSummary();
   };
 
+  // ---------- Events ----------
+  addBtn.onclick=()=>{ const v=playerName.value.trim(); if(!v) return; addPlayer(v); playerName.value=''; };
+  playerName.addEventListener('keydown',e=>{ if(e.key==='Enter') addBtn.click(); });
+  bulkBtn.onclick=()=>{ const t=bulk.value.trim(); if(!t) return; addBulk(t); bulk.value=''; };
   datePick.onchange=()=>renderToday();
   monthPick.onchange=()=>{ renderMonth(); updateSummary(); };
   refreshBtn.onclick=()=>{ renderMonth(); updateSummary(); };
@@ -396,61 +427,57 @@
   printBtn.onclick=()=>window.print();
 
   // ---------- Init ----------
-  // default date controls
   datePick.value = today();
   monthPick.value = fmtMonthYYYYMM(today());
   renderToday(); renderMonth(); updateSummary();
 
-
   // ---------- History Popup ----------
-window.showHistory=function(name){
-  const hist=document.getElementById("historyPopup");
-  const histBody=document.getElementById("histBody");
-  const histTitle=document.getElementById("histTitle");
-  histTitle.textContent="Attendance History - "+name;
-  histBody.innerHTMH="";
+  window.showHistory=function(name){
+    const hist=document.getElementById("historyPopup");
+    const histBody=document.getElementById("histBody");
+    const histTitle=document.getElementById("histTitle");
+    histTitle.textContent="Attendance History - "+name;
+    histBody.innerHTML="";
 
-  Object.keys(S.records).sort().forEach(date=>{
-    const st=S.records[date][name];
-    if(!st) return;
-    const tr=document.createElement("tr");
-    tr.innerHTMH=`
-      <td>${date}</td>
-      <td>${labelFor(st)}</td>
-      <td>
-        <button onclick="editAttendance('${name}','${date}','${st}')">✏ Edit</button>
-        <button onclick="deleteAttendance('${name}','${date}')">🗑 Delete</button>
-      </td>
-    `;
-    histBody.appendChild(tr);
-  });
+    Object.keys(S.records).sort().forEach(date=>{
+      const st=S.records[date][name];
+      if(!st) return;
+      const tr=document.createElement("tr");
+      tr.innerHTML=`
+        <td>${date}</td>
+        <td>${labelFor(st)}</td>
+        <td>
+          <button onclick="editAttendance('${name}','${date}','${st}')">✏ Edit</button>
+          <button onclick="deleteAttendance('${name}','${date}')">🗑 Delete</button>
+        </td>
+      `;
+      histBody.appendChild(tr);
+    });
 
-  hist.style.display="flex";
-};
+    hist.style.display="flex";
+  };
 
-window.closeHist=function(){
-  document.getElementById("historyPopup").style.display="none";
-};
+  window.closeHist=function(){
+    document.getElementById("historyPopup").style.display="none";
+  };
 
-// edit existing record
-window.editAttendance=function(name,date,oldSt){
-  const newSt=prompt("Change to (P=Present, A=Absent, H=Holiday)",oldSt);
-  if(!newSt || !["P","A","H"].includes(newSt)) return;
-  S.records[date][name]=newSt;
-  save(); renderToday(); renderMonth(); updateSummary();
-  showHistory(name); // refresh table
-};
+  window.editAttendance=function(name,date,oldSt){
+    const newSt=prompt("Change to (P=Present, A=Absent, H=Holiday)",oldSt);
+    if(!newSt || !["P","A","H"].includes(newSt)) return;
+    S.records[date][name]=newSt;
+    save(); renderToday(); renderMonth(); updateSummary();
+    showHistory(name);
+  };
 
-// delete record
-window.deleteAttendance=function(name,date){
-  if(!confirm("Delete record for "+date+"?")) return;
-  delete S.records[date][name];
-  save(); renderToday(); renderMonth(); updateSummary();
-  showHistory(name);
-};
-
+  window.deleteAttendance=function(name,date){
+    if(!confirm("Delete record for "+date+"?")) return;
+    delete S.records[date][name];
+    save(); renderToday(); renderMonth(); updateSummary();
+    showHistory(name);
+  };
 })();
 </script>
+
 <!-- Player Attendance History Popup -->
 <div id="historyPopup" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);align-items:center;justify-content:center;z-index:50">
   <div style="background:#0f1422;padding:16px;border-radius:12px;max-width:600px;width:90%;max-height:80%;overflow:auto">

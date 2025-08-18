@@ -35,15 +35,15 @@
   .legend{font-size:12px; color:var(--muted); margin-left:4px}
 
   /* Player list */
+#playerPanel h3 {
+  margin: 6px 6px 10px;
+  font-size: 16px;
+}
+
 #playerList {
   list-style: none;
   padding: 0;
-  margin: 10px 0;
-  max-height: 200px;
-  overflow-y: auto;
-  border: 1px solid #444;
-  border-radius: 6px;
-  background: #1e1e1e;
+  margin: 0;
 }
 
 #playerList li {
@@ -52,10 +52,9 @@
   align-items: center;
   padding: 6px 10px;
   border-bottom: 1px solid #333;
-  color: #eee;
   font-size: 14px;
+  color: #eee;
 }
-
 #playerList li:last-child {
   border-bottom: none;
 }
@@ -77,7 +76,12 @@
 }
 
 
-  main{display:grid; grid-template-columns:1fr 320px; gap:14px; padding:14px}
+ main {
+  display: grid;
+  grid-template-columns: 220px 1fr 260px; /* players | board | stats */
+  gap: 14px;
+  padding: 14px;
+}
   .board{position:relative; overflow:auto; border:1px solid #1a2233; border-radius:14px; background:
       radial-gradient(900px 260px at 25% 0%, rgba(73,168,255,.10), transparent),
       radial-gradient(900px 260px at 70% 100%, rgba(123,220,255,.08), transparent),
@@ -164,7 +168,7 @@
     <button class="btn" id="importBtn">Import</button>
 
     <span class="legend" id="count">0 players</span>
-    <ul id="playerList"></ul>
+   
 
 
     <!-- adding players placed LAST -->
@@ -177,19 +181,33 @@
 </header>
 
 <main>
+  <!-- Left: Player list -->
+  <aside id="playerPanel">
+    <h3>Players</h3>
+    <ul id="playerList"></ul>
+  </aside>
+
+  <!-- Middle: Brackets -->
   <section class="board">
-    <div id="board" class="board-inner">
-      <svg id="lines" width="1200" height="800"></svg>
+    <div class="board-inner" id="board">
+      <svg id="lines"></svg>
     </div>
   </section>
-  <aside>
-    <h3>📊 Player Statistics</h3>
+
+  <!-- Right: Stats -->
+  <aside id="statsPanel">
+    <h3>Statistics</h3>
     <table>
-      <thead><tr><th>#</th><th>Player/Team</th><th>P</th><th>W</th><th>L</th><th>PF</th><th>PA</th><th>±</th></tr></thead>
+      <thead>
+        <tr>
+          <th>#</th><th>Name</th><th>P</th><th>W</th><th>L</th><th>PF</th><th>PA</th><th>+/-</th>
+        </tr>
+      </thead>
       <tbody id="statsBody"></tbody>
     </table>
   </aside>
 </main>
+
 
 <script>
 (function(){

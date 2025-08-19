@@ -456,9 +456,8 @@
                 lastSaved: null
             };
             
-            // Database setup
-            const dbName = 'BadmintonTournamentDB';
-            const storeName = 'tournaments';
+            // File handle for persistent storage
+            let fileHandle = null;
             
             // DOM Elements
             const addPlayerBtn = document.getElementById('add-player');
@@ -489,108 +488,8 @@
             // Set current date as default
             tournamentDateInput.value = tournamentData.date;
             
-            // Initialize database and load saved data
-            initializeDB().then(() => {
-                loadSavedData();
-            });
-            
-            // Database functions
-            async function initializeDB() {
-                return new Promise((resolve, reject) => {
-                    const request = indexedDB.open(dbName, 1);
-                    
-                    request.onupgradeneeded = (event) => {
-                        const db = event.target.result;
-                        if (!db.objectStoreNames.contains(storeName)) {
-                            db.createObjectStore(storeName, { keyPath: 'id' });
-                        }
-                    };
-                    
-                    request.onsuccess = () => resolve();
-                    request.onerror = (event) => {
-                        console.error('Database error:', event.target.error);
-                        reject(event.target.error);
-                    };
-                });
-            }
-            
-            async function saveToDB(data) {
-                return new Promise((resolve, reject) => {
-                    const request = indexedDB.open(dbName, 1);
-                    
-                    request.onsuccess = (event) => {
-                        const db = event.target.result;
-                        const tx = db.transaction(storeName, 'readwrite');
-                        const store = tx.objectStore(storeName);
-                        
-                        // Add an ID to the data
-                        data.id = 'current_tournament';
-                        
-                        const requestPut = store.put(data);
-                        
-                        requestPut.onsuccess = () => resolve();
-                        requestPut.onerror = (event) => {
-                            console.error('Error saving data:', event.target.error);
-                            reject(event.target.error);
-                        };
-                    };
-                    
-                    request.onerror = (event) => {
-                        console.error('Database error:', event.target.error);
-                        reject(event.target.error);
-                    };
-                });
-            }
-            
-            async function loadFromDB() {
-                return new Promise((resolve, reject) => {
-                    const request = indexedDB.open(dbName, 1);
-                    
-                    request.onsuccess = (event) => {
-                        const db = event.target.result;
-                        const tx = db.transaction(storeName, 'readonly');
-                        const store = tx.objectStore(storeName);
-                        
-                        const requestGet = store.get('current_tournament');
-                        
-                        requestGet.onsuccess = (event) => resolve(event.target.result);
-                        requestGet.onerror = (event) => {
-                            console.error('Error loading data:', event.target.error);
-                            reject(event.target.error);
-                        };
-                    };
-                    
-                    request.onerror = (event) => {
-                        console.error('Database error:', event.target.error);
-                        reject(event.target.error);
-                    };
-                });
-            }
-            
-            async function clearDB() {
-                return new Promise((resolve, reject) => {
-                    const request = indexedDB.open(dbName, 1);
-                    
-                    request.onsuccess = (event) => {
-                        const db = event.target.result;
-                        const tx = db.transaction(storeName, 'readwrite');
-                        const store = tx.objectStore(storeName);
-                        
-                        const requestClear = store.clear();
-                        
-                        requestClear.onsuccess = () => resolve();
-                        requestClear.onerror = (event) => {
-                            console.error('Error clearing data:', event.target.error);
-                            reject(event.target.error);
-                        };
-                    };
-                    
-                    request.onerror = (event) => {
-                        console.error('Database error:', event.target.error);
-                        reject(event.target.error);
-                    };
-                });
-            }
+            // Load saved data if available
+            loadSavedData();
             
             // Add player to the tournament
             addPlayerBtn.addEventListener('click', function() {
@@ -632,68 +531,93 @@
                 matchesTable.style.display = 'table';
             });
             
-            // Save tournament data to IndexedDB
-            saveDataBtn.addEventListener('click', async function() {
+            // Save tournament data to localStorage
+            saveDataBtn.addEventListener('click', function() {
                 tournamentData.name = tournamentNameInput.value.trim();
                 tournamentData.date = tournamentDateInput.value;
                 tournamentData.lastSaved = new Date().toISOString();
                 
+                localStorage.setItem('badmintonTournamentData', JSON.stringify(tournamentData));
+                alert('Tournament data saved to browser storage!');
+            });
+            
+            // Save to file using File System Access API
+            saveFileBtn.addEventListener('click', async function() {
                 try {
-                    await saveToDB(tournamentData);
-                    alert('Tournament data saved successfully!');
+                    tournamentData.name = tournamentNameInput.value.trim();
+                    tournamentData.date = tournamentDateInput.value;
+                    tournamentData.lastSaved = new Date().toISOString();
+                    
+                    const dataToSave = prepareExportData();
+                    const fileName = `badminton-tournament-${tournamentData.date || 'data'}.json`;
+                    const fileContent = JSON.stringify(dataToSave, null, 2);
+                    
+                    // Use existing file handle if we have one, otherwise prompt for new file
+                    if (!fileHandle) {
+                        fileHandle = await window.showSaveFilePicker({
+                            suggestedName: fileName,
+                            types: [{
+                                description: 'JSON Files',
+                                accept: {
+                                    'application/json': ['.json'],
+                                },
+                            }],
+                        });
+                    }
+                    
+                    // Create a FileSystemWritableFileStream to write to
+                    const writableStream = await fileHandle.createWritable();
+                    await writableStream.write(fileContent);
+                    await writableStream.close();
+                    
+                    // Update UI with current file info
+                    currentFilename.textContent = fileHandle.name;
+                    fileHandleInfo.style.display = 'block';
+                    
+                    alert(`Tournament data saved to ${fileHandle.name}`);
                 } catch (error) {
-                    console.error('Error saving data:', error);
-                    alert('Failed to save tournament data. See console for details.');
+                    if (error.name === 'AbortError') {
+                        return; // User cancelled the save
+                    }
+                    console.error("File save error:", error);
+                    alert("Failed to save file: " + error.message);
                 }
             });
             
-            // Save to file (download)
-            saveFileBtn.addEventListener('click', function() {
-                tournamentData.name = tournamentNameInput.value.trim();
-                tournamentData.date = tournamentDateInput.value;
-                tournamentData.lastSaved = new Date().toISOString();
-                
-                const dataToSave = prepareExportData();
-                const fileName = `badminton-tournament-${tournamentData.date || 'data'}.json`;
-                const fileContent = JSON.stringify(dataToSave, null, 2);
-                
-                // Create a Blob and download it
-                const blob = new Blob([fileContent], { type: 'application/json' });
-                const url = URL.createObjectURL(blob);
-                
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = fileName;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
-            });
-            
-            // Load from file
-            loadFileBtn.addEventListener('click', function() {
-                const input = document.createElement('input');
-                input.type = 'file';
-                input.accept = '.json';
-                
-                input.onchange = e => {
-                    const file = e.target.files[0];
-                    const reader = new FileReader();
+            // Load from file using File System Access API
+            loadFileBtn.addEventListener('click', async function() {
+                try {
+                    // Open file picker
+                    [fileHandle] = await window.showOpenFilePicker({
+                        types: [{
+                            description: 'JSON Files',
+                            accept: {
+                                'application/json': ['.json'],
+                            },
+                        }],
+                        multiple: false
+                    });
                     
-                    reader.onload = event => {
-                        try {
-                            const fileData = JSON.parse(event.target.result);
-                            loadTournamentData(fileData);
-                            alert(`Tournament data loaded from ${file.name}`);
-                        } catch (error) {
-                            alert("Failed to load file: " + error.message);
-                        }
-                    };
+                    // Get file contents
+                    const file = await fileHandle.getFile();
+                    const contents = await file.text();
+                    const fileData = JSON.parse(contents);
                     
-                    reader.readAsText(file);
-                };
-                
-                input.click();
+                    // Update UI with current file info
+                    currentFilename.textContent = fileHandle.name;
+                    fileHandleInfo.style.display = 'block';
+                    
+                    // Load the data
+                    loadTournamentData(fileData);
+                    
+                    alert(`Tournament data loaded from ${fileHandle.name}`);
+                } catch (error) {
+                    if (error.name === 'AbortError') {
+                        return; // User cancelled the open
+                    }
+                    console.error("File load error:", error);
+                    alert("Failed to load file: " + error.message);
+                }
             });
             
             // Export data as JSON (download)
@@ -755,40 +679,33 @@
             });
             
             // Clear all data
-            clearDataBtn.addEventListener('click', async function() {
+            clearDataBtn.addEventListener('click', function() {
                 if (confirm('Are you sure you want to clear all tournament data? This cannot be undone.')) {
-                    try {
-                        await clearDB();
-                        
-                        tournamentData.name = '';
-                        tournamentData.date = new Date().toISOString().split('T')[0];
-                        tournamentData.players = [];
-                        tournamentData.matches = [];
-                        tournamentData.lastSaved = null;
-                        
-                        tournamentNameInput.value = '';
-                        tournamentDateInput.value = tournamentData.date;
-                        noPlayersMessage.style.display = 'block';
-                        playersContainer.innerHTML = '';
-                        playersContainer.appendChild(noPlayersMessage);
-                        noScheduleMessage.style.display = 'block';
-                        matchesTable.style.display = 'none';
-                        noStatsMessage.style.display = 'block';
-                        statsContent.style.display = 'none';
-                        fileHandleInfo.style.display = 'none';
-                        
-                        alert('All data has been cleared.');
-                    } catch (error) {
-                        console.error('Error clearing data:', error);
-                        alert('Failed to clear data. See console for details.');
-                    }
+                    localStorage.removeItem('badmintonTournamentData');
+                    tournamentData.name = '';
+                    tournamentData.date = new Date().toISOString().split('T')[0];
+                    tournamentData.players = [];
+                    tournamentData.matches = [];
+                    tournamentData.lastSaved = null;
+                    fileHandle = null;
+                    
+                    tournamentNameInput.value = '';
+                    tournamentDateInput.value = tournamentData.date;
+                    noPlayersMessage.style.display = 'block';
+                    playersContainer.innerHTML = '';
+                    playersContainer.appendChild(noPlayersMessage);
+                    noScheduleMessage.style.display = 'block';
+                    matchesTable.style.display = 'none';
+                    noStatsMessage.style.display = 'block';
+                    statsContent.style.display = 'none';
+                    fileHandleInfo.style.display = 'none';
+                    
+                    alert('All data has been cleared.');
                 }
             });
             
             // Load tournament data from file or object
             function loadTournamentData(data) {
-                if (!data) return;
-                
                 tournamentData.name = data.name || '';
                 tournamentData.date = data.date || new Date().toISOString().split('T')[0];
                 tournamentData.players = data.players || [];
@@ -805,16 +722,6 @@
                     noScheduleMessage.style.display = 'none';
                     matchesTable.style.display = 'table';
                     updateStatistics();
-                }
-            }
-            
-            // Load saved data from IndexedDB
-            async function loadSavedData() {
-                try {
-                    const savedData = await loadFromDB();
-                    loadTournamentData(savedData);
-                } catch (error) {
-                    console.error('Error loading saved data:', error);
                 }
             }
             
@@ -1090,6 +997,32 @@
                     
                     headToHeadBody.appendChild(row);
                 });
+            }
+            
+            // Load saved data from localStorage
+            function loadSavedData() {
+                const savedData = localStorage.getItem('badmintonTournamentData');
+                if (savedData) {
+                    const parsedData = JSON.parse(savedData);
+                    
+                    tournamentData.name = parsedData.name || '';
+                    tournamentData.date = parsedData.date || new Date().toISOString().split('T')[0];
+                    tournamentData.players = parsedData.players || [];
+                    tournamentData.matches = parsedData.matches || [];
+                    tournamentData.lastSaved = parsedData.lastSaved || null;
+                    
+                    tournamentNameInput.value = tournamentData.name;
+                    tournamentDateInput.value = tournamentData.date;
+                    
+                    renderPlayers();
+                    
+                    if (tournamentData.matches.length > 0) {
+                        renderMatches();
+                        noScheduleMessage.style.display = 'none';
+                        matchesTable.style.display = 'table';
+                        updateStatistics();
+                    }
+                }
             }
             
             // Prepare data for export

@@ -3,15 +3,15 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Dhana Badminton Manager</title>
+  <title>Badminton Manager — Unified Launcher</title>
 
-  <!-- Font Awesome -->
+  <!-- Font Awesome (used by some of your files) -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <!-- Lottie Player -->
-  <script src="https://unpkg.com/@lottiefiles/lottie-player@latest/dist/lottie-player.js"></script>
 
   <style>
     :root{
+      --bg:#0f1724;
+      --card:#0b1220;
       --accent:#3a86ff;
       --muted:#9aa4b2;
       --white:#fff;
@@ -19,149 +19,116 @@
     *{box-sizing:border-box;margin:0;padding:0;font-family:Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;}
 
     body{
-      background: linear-gradient(-45deg, #0f1724, #1a1c40, #091428, #3a86ff);
-      background-size: 400% 400%;
-      animation: gradientBG 12s ease infinite;
+      background: linear-gradient(180deg,#071028 0%, #091428 100%);
+      color:var(--white);
       min-height:100vh;
       display:flex;
       align-items:center;
       justify-content:center;
-      overflow:hidden;
-      color:var(--white);
       padding:20px;
     }
-    @keyframes gradientBG {
-      0% {background-position:0% 50%;}
-      50% {background-position:100% 50%;}
-      100% {background-position:0% 50%;}
+
+    /* Centered sign-in wrapper */
+    .frame {
+      width:100%;
+      max-width:1200px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+      border-radius:12px;
+      overflow:hidden;
+      box-shadow: 0 10px 40px rgba(2,6,23,0.7);
+      border:1px solid rgba(255,255,255,0.03);
     }
 
-    /* ==== Login Layout ==== */
-    .login-container {
-      width: 100%;
-      max-width: 1100px;
-      display: flex;
-      gap: 2rem;
-      align-items: center;
-      justify-content: space-between;
-      animation: fadeInUp 1s ease forwards;
-      opacity: 0;
+    /* Sign-in view */
+    .sign-in {
+      display:flex;
+      gap:2rem;
+      padding:40px;
+      align-items:center;
+      justify-content:space-between;
     }
-    @keyframes fadeInUp {
-      0% { transform: translateY(40px); opacity: 0; }
-      100% { transform: translateY(0); opacity: 1; }
+    .sign-left{
+      flex:1;
     }
+    .sign-right{
+      flex:1;
+      background:linear-gradient(180deg,var(--accent),#7b61ff);
+      padding:40px;
+      border-radius:8px;
+      color:#fff;
+      text-align:center;
+    }
+    h1,h2{margin-bottom:12px}
+    p.lead{color:var(--muted); margin-bottom:18px;}
+    .form-group{margin-bottom:12px;}
+    input[type="text"], input[type="password"]{
+      width:100%;
+      padding:12px 14px;
+      border-radius:8px;
+      border:1px solid rgba(255,255,255,0.06);
+      background: rgba(255,255,255,0.02);
+      color:var(--white);
+    }
+    .btn{
+      display:inline-block;
+      padding:10px 16px;
+      border-radius:8px;
+      cursor:pointer;
+      border:none;
+      font-weight:600;
+    }
+    .btn-primary{background:linear-gradient(90deg,var(--accent),#8e58ff); color:white}
+    .btn-ghost{background:transparent;border:1px solid rgba(255,255,255,0.06);color:var(--white)}
 
-    /* Lottie Animation Side */
-    .login-animation {
-      flex: 1;
+    /* Main app area (hidden until login) */
+
+
+    .app {
+  display: none;
+  width: 100%;
+  height: 80vh;
+  min-height: 600px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.008));
+  flex-direction: column; /* <-- ADD this line */
+}
+
+
+    /* top nav */
+    .topbar {
       display:flex;
       align-items:center;
-      justify-content:center;
+      gap:12px;
+      padding:12px 16px;
+      border-bottom:1px solid rgba(255,255,255,0.02);
+      background: linear-gradient(180deg, rgba(0,0,0,0.04), rgba(255,255,255,0.01));
     }
-    .login-animation lottie-player {
-      width: 100%;
-      max-width: 400px;
-      height: auto;
-    }
-
-    /* Glass Login Card */
-    .sign-in {
-      flex:1;
-      background: rgba(255,255,255,0.06);
-      backdrop-filter: blur(14px);
-      padding: 40px;
-      border-radius: 16px;
-      box-shadow: 0 12px 40px rgba(0,0,0,0.4);
-    }
-    .sign-in h1 {margin-bottom:10px;}
-    .sign-in p.lead{color:var(--muted); margin-bottom:20px;}
-
-    .form-group {
-      position: relative;
-      margin-bottom: 20px;
-    }
-    .form-group input {
-      width: 100%;
-      padding: 14px 12px;
-      border-radius: 8px;
-      border: 1px solid rgba(255,255,255,0.2);
-      background: rgba(255,255,255,0.08);
-      color: white;
-      font-size: 1rem;
-      transition: all 0.3s ease;
-    }
-    .form-group input:focus {
-      outline: none;
-      border-color: #3a86ff;
-      box-shadow: 0 0 12px rgba(58,134,255,0.5);
-    }
-    .form-group label {
-      position: absolute;
-      top: 14px;
-      left: 14px;
-      font-size: 0.9rem;
-      color: #bbb;
-      pointer-events: none;
-      transition: 0.2s ease all;
-    }
-    .form-group input:focus + label,
-    .form-group input:not(:placeholder-shown) + label {
-      top: -8px;
-      left: 10px;
-      font-size: 0.75rem;
-      background: rgba(0,0,0,0.4);
-      padding: 0 6px;
-      border-radius: 6px;
-      color: #3a86ff;
-    }
-
-    /* Buttons */
-    .btn {
-      display: inline-block;
-      padding: 12px 20px;
-      border-radius: 8px;
-      border: none;
-      cursor: pointer;
-      font-weight: 600;
-      transition: transform 0.2s ease, box-shadow 0.2s ease;
-    }
-    .btn-primary {
-      background: linear-gradient(90deg, #3a86ff, #7b61ff);
-      color: white;
-    }
-    .btn:hover {
-      transform: scale(1.05);
-      box-shadow: 0 6px 18px rgba(58,134,255,0.4);
-    }
-    .btn-ghost {
-      background: transparent;
-      border: 1px solid rgba(255,255,255,0.4);
-      color: white;
-    }
-
-    /* ==== Main App ==== */
-    .app {
-      display: none;
-      width: 100%;
-      height: 80vh;
-      min-height: 600px;
-      background: linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.008));
-      flex-direction: column;
-    }
-    .topbar {display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid rgba(255,255,255,0.02);background: linear-gradient(180deg, rgba(0,0,0,0.04), rgba(255,255,255,0.01));}
     .brand {font-weight:700; display:flex; gap:10px; align-items:center}
     .brand .logo {width:36px;height:36px;border-radius:8px;background:var(--accent);display:inline-flex;align-items:center;justify-content:center;color:#fff;font-weight:700}
     .tabs {display:flex; gap:8px; margin-left:24px; flex-wrap:wrap}
-    .tab{padding:8px 12px;border-radius:10px;background:transparent;color:var(--muted);cursor:pointer;border:1px solid transparent;}
+    .tab{
+      padding:8px 12px;border-radius:10px;background:transparent;color:var(--muted);cursor:pointer;border:1px solid transparent;
+    }
     .tab.active{background:linear-gradient(90deg,var(--accent),#7b61ff); color:#fff; box-shadow:0 6px 18px rgba(58,134,255,0.14)}
     .top-actions {margin-left:auto; display:flex; gap:8px; align-items:center}
-    .pane {height: calc(100% - 64px);display:flex;border-top:1px solid rgba(255,255,255,0.02);}
-    .pane iframe{width:100%;border:none;height:100%;background:white;}
-    .hidden{display:none}
 
+    /* iframe pane area */
+    .pane {
+      height: calc(100% - 64px);
+      display:flex;
+      border-top:1px solid rgba(255,255,255,0.02);
+    }
+    .pane iframe{
+      width:100%;
+      border:none;
+      height:100%;
+      background:white;
+    }
+
+    /* small helper */
+    .hidden{display:none}
     @media (max-width:900px){
-      .login-container {flex-direction:column;max-width:95%}
+      .sign-in {flex-direction:column;padding:20px}
+      .sign-right{padding:28px;border-radius:8px;width:100%}
     }
   </style>
 </head>
@@ -169,47 +136,50 @@
 
   <div class="frame">
 
-    <!-- LOGIN AREA -->
-    <div id="signInView" class="login-container">
-      <!-- Walking animation -->
-      <div class="login-animation">
-        <lottie-player src="https://assets9.lottiefiles.com/packages/lf20_kyu7xb1v.json"  background="transparent"  speed="1"  loop autoplay></lottie-player>
+    <!-- SIGN-IN AREA -->
+    <div id="signInView" class="sign-in">
+      <div class="sign-left">
+        <h1>Welcome back</h1>
+        <p class="lead">Sign in to open your Badminton Manager pages in one place.</p>
+
+        <div class="form-group">
+          <label for="username">Username</label>
+          <input id="username" type="text" placeholder="Enter username" value="">
+        </div>
+
+        <div class="form-group">
+          <label for="password">Password</label>
+          <input id="password" type="password" placeholder="Password">
+        </div>
+
+        <div style="display:flex;gap:10px;margin-top:12px;">
+          <button id="signInBtn" class="btn btn-primary">Sign in</button>
+          <button id="openAsGuest" class="btn btn-ghost">Continue as guest</button>
+        </div>
+
+        <p style="margin-top:14px;color:var(--muted)">Tip: if you just want to preview locally click "Continue as guest".</p>
       </div>
 
-      <!-- Login form -->
-      <div class="sign-in">
-        <h1>Welcome Back 👋</h1>
-        <p class="lead">Log in to continue managing your badminton tournaments.</p>
-
-        <div class="form-group">
-          <input id="username" type="text" placeholder=" " />
-          <label for="username">Username</label>
-        </div>
-
-        <div class="form-group">
-          <input id="password" type="password" placeholder=" " />
-          <label for="password">Password</label>
-        </div>
-
-        <div style="display:flex;gap:12px;margin-top:20px;">
-          <button id="signInBtn" class="btn btn-primary">Sign In</button>
-          <button id="openAsGuest" class="btn btn-ghost">Continue as Guest</button>
-        </div>
+      <div class="sign-right">
+        <div style="font-size:40px;margin-bottom:8px">🏸</div>
+        <h2>Badminton Manager</h2>
+        <p style="opacity:0.95">Dashboard — Players — Tournaments — Attendance — Brackets</p>
+        <p style="margin-top:16px;color:rgba(255,255,255,0.9);font-size:0.95rem">This launcher will open the chosen page inside the app area.</p>
       </div>
     </div>
 
-    <!-- APP AREA -->
+    <!-- APP AREA (shown after login) -->
     <div id="appView" class="app hidden" aria-hidden="true">
       <div class="topbar">
         <div class="brand">
-          <div class="logo">DP</div>
+          <div class="logo">BM</div>
           <div>
-            <div style="font-size:14px">Dhana Prasasd</div>
-            <div style="font-size:12px;color:var(--muted)">Badminton Manager</div>
+            <div style="font-size:14px">Badminton Manager</div>
+            <div style="font-size:12px;color:var(--muted)">Unified Launcher</div>
           </div>
         </div>
 
-        <div class="tabs" role="tablist">
+        <div class="tabs" role="tablist" aria-label="Main tabs">
           <div class="tab active" data-target="dashboard">Dashboard</div>
           <div class="tab" data-target="players">Players</div>
           <div class="tab" data-target="tournament">Tournament</div>
@@ -225,6 +195,8 @@
       </div>
 
       <div class="pane">
+        <!-- We'll load each page in the iframe -->
+        <!-- Make sure these file names exist in the same folder -->
         <iframe id="contentFrame" src="" frameborder="0" title="content"></iframe>
       </div>
     </div>
@@ -232,15 +204,17 @@
   </div>
 
   <script>
+    // Files (these are your uploaded files — keep them in same folder)
     const FILES = {
-      dashboard: 'dashboard.html',
-      players: 'PlayerPage.html',
-      tournament: 'TournamentPage.html',
-      roundrobin: 'Round_Robin_updated.html',
-      attendance: 'Attendance_book.html',
-      bracket: 'Bracket_tournament.html'
+      dashboard: 'index.html',                 // index.html (dashboard). :contentReference[oaicite:7]{index=7}
+      players: 'PlayerPage.html',              // PlayerPage.html. :contentReference[oaicite:8]{index=8}
+      tournament: 'TournamentPage.html',       // TournamentPage.html. :contentReference[oaicite:9]{index=9}
+      roundrobin: 'Round_Robin_updated.html',  // Round_Robin_updated.html. :contentReference[oaicite:10]{index=10}
+      attendance: 'Attendance_book.html',      // Attendance_book.html. :contentReference[oaicite:11]{index=11}
+      bracket: 'Bracket_tournament.html'       // Bracket_tournament.html. :contentReference[oaicite:12]{index=12}
     };
 
+    // elements
     const signInView = document.getElementById('signInView');
     const appView = document.getElementById('appView');
     const contentFrame = document.getElementById('contentFrame');
@@ -250,18 +224,27 @@
     const tabs = document.querySelectorAll('.tab');
     const currentUser = document.getElementById('currentUser');
 
+    // sign-in handler (very simple local check)
     function doSignIn(username) {
+      // show app
       signInView.style.display = 'none';
       appView.classList.remove('hidden');
       appView.style.display = 'flex';
+      appView.setAttribute('aria-hidden', 'false');
+
+      // set user display
       currentUser.textContent = username ? `Signed in as ${username}` : 'Signed in (guest)';
+
+      // load default page: dashboard
       loadTab('dashboard');
     }
 
     signInBtn.addEventListener('click', () => {
       const user = document.getElementById('username').value.trim();
       const pass = document.getElementById('password').value.trim();
+      // local/simple validation; you can replace with real auth later
       if (!user) {
+        // if username empty ask to continue as guest
         if (!confirm('No username entered. Continue as guest?')) return;
       }
       doSignIn(user || 'guest');
@@ -271,15 +254,18 @@
 
     signOutBtn.addEventListener('click', () => {
       if (!confirm('Sign out and return to login?')) return;
+      // hide app and reset
       appView.style.display = 'none';
       appView.classList.add('hidden');
       signInView.style.display = 'flex';
       document.getElementById('password').value = '';
       currentUser.textContent = 'Signed in';
       contentFrame.src = '';
+      // return to top of sign in
       window.scrollTo(0,0);
     });
 
+    // Tab handling
     tabs.forEach(tab => {
       tab.addEventListener('click', () => {
         const target = tab.getAttribute('data-target');
@@ -290,12 +276,33 @@
     function setActiveTab(target) {
       tabs.forEach(t => t.classList.toggle('active', t.getAttribute('data-target') === target));
     }
+
+    // load selected file into iframe (must be same-folder)
     function loadTab(target) {
       const file = FILES[target];
-      if (!file) { alert('Page not found: ' + target); return; }
+      if (!file) {
+        alert('Page not found for tab: ' + target);
+        return;
+      }
       setActiveTab(target);
+
+      // If you want the iframe to be hidden during load, uncomment next two lines:
+      // contentFrame.style.visibility = 'hidden';
       contentFrame.src = file;
+
+      // show frame when it finishes loading
+      contentFrame.onload = () => {
+        // contentFrame.style.visibility = 'visible';
+        // optional: postMessage or other integration can be added here
+      };
     }
+
+    // convenience: if user opens app file directly and wants to auto-open sign in copy
+    // If user opens this file and they want to go straight to the real Sign_in.html page you uploaded:
+    // you can uncomment the next line to replace our sign in with your own sign in file in the iframe:
+    // contentFrame.src = 'Sign_in.html'; // (But this would bypass our unified sign-in)
   </script>
+
+  <footer style="display:none"></footer>
 </body>
 </html>
